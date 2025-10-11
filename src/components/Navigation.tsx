@@ -1,33 +1,73 @@
 import { useState, useEffect } from "react";
 import { Menu, X, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-const Navigation = () => {
+interface NavigationProps {
+  onOpenAuth: (tab?: "signin" | "signup") => void;
+}
+
+const Navigation = ({ onOpenAuth }: NavigationProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    
+    // Check for existing session
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Signed out",
+        description: "You've been signed out successfully.",
+      });
+    }
+  };
 
   const navLinks = [
     { href: "#home", label: "Home" },
     { href: "#features", label: "Features" },
     { href: "#about", label: "About" },
+    { href: "#specialists", label: "Specialists" },
     { href: "#testimonials", label: "Testimonials" },
+    { href: "#community", label: "Community" },
     { href: "#contact", label: "Contact" },
   ];
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b-2 ${
         isScrolled
-          ? "bg-background/95 backdrop-blur-md shadow-elegant"
-          : "bg-transparent"
+          ? "bg-background/95 backdrop-blur-md shadow-elegant border-primary/20"
+          : "bg-background/80 backdrop-blur-sm border-transparent"
       }`}
     >
       <nav className="container mx-auto px-4 py-4">
@@ -56,15 +96,29 @@ const Navigation = () => {
           </ul>
 
           <div className="hidden md:flex items-center gap-4">
-            <Button variant="ghost" size="lg" className="font-inter">
-              Sign In
-            </Button>
-            <Button
-              size="lg"
-              className="bg-gradient-primary font-inter font-semibold shadow-glow hover:scale-105 transition-transform"
-            >
-              Get Started
-            </Button>
+            {user ? (
+              <>
+                <span className="text-sm text-muted-foreground">
+                  {user.email}
+                </span>
+                <Button variant="ghost" size="lg" className="font-inter" onClick={handleSignOut}>
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="lg" className="font-inter" onClick={() => onOpenAuth("signin")}>
+                  Sign In
+                </Button>
+                <Button
+                  size="lg"
+                  className="bg-gradient-primary font-inter font-semibold shadow-glow hover:scale-105 transition-transform"
+                  onClick={() => onOpenAuth("signup")}
+                >
+                  Get Started
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -97,12 +151,20 @@ const Navigation = () => {
                 </li>
               ))}
               <li className="flex flex-col gap-2 pt-2">
-                <Button variant="ghost" className="w-full font-inter">
-                  Sign In
-                </Button>
-                <Button className="w-full bg-gradient-primary font-inter font-semibold">
-                  Get Started
-                </Button>
+                {user ? (
+                  <Button variant="ghost" className="w-full font-inter" onClick={handleSignOut}>
+                    Sign Out
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="ghost" className="w-full font-inter" onClick={() => onOpenAuth("signin")}>
+                      Sign In
+                    </Button>
+                    <Button className="w-full bg-gradient-primary font-inter font-semibold" onClick={() => onOpenAuth("signup")}>
+                      Get Started
+                    </Button>
+                  </>
+                )}
               </li>
             </ul>
           </div>

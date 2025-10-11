@@ -111,6 +111,8 @@ export default {
         "gradient-primary": "var(--gradient-primary)",
         "gradient-hero": "var(--gradient-hero)",
         "gradient-card": "var(--gradient-card)",
+        "gradient-chat": "var(--gradient-chat)",
+        "gradient-community": "var(--gradient-community)",
       },
       boxShadow: {
         "elegant": "var(--shadow-elegant)",

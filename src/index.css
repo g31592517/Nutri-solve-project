@@ -8,7 +8,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 42 15% 95%;
     --foreground: 147 15% 15%;
 
     --card: 0 0% 100%;
@@ -24,7 +24,7 @@ All colors MUST be HSL.
     --secondary: 48 96% 53%;
     --secondary-foreground: 147 15% 15%;
 
-    --muted: 120 20% 95%;
+    --muted: 42 18% 88%;
     --muted-foreground: 147 10% 45%;
 
     --accent: 48 96% 53%;
@@ -39,10 +39,12 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
-    /* Custom design tokens */
+    /* Nature-inspired color scheme */
     --gradient-primary: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 56%));
-    --gradient-hero: linear-gradient(180deg, hsl(120 30% 98%), hsl(0 0% 100%));
-    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(120 30% 98%));
+    --gradient-hero: linear-gradient(180deg, hsl(84 15% 85%), hsl(42 25% 92%));
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(84 20% 95%));
+    --gradient-chat: linear-gradient(135deg, hsl(174 25% 85%), hsl(28 100% 90%));
+    --gradient-community: linear-gradient(135deg, hsl(84 20% 90%), hsl(42 30% 88%));
     --shadow-elegant: 0 10px 40px -10px hsl(142 76% 36% / 0.2);
     --shadow-glow: 0 0 40px hsl(142 76% 56% / 0.3);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

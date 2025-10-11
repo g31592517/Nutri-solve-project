@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { Flame, Droplet, AppleIcon, Calendar, Utensils, Dumbbell, Weight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { QuickActionModals } from "./dashboard/QuickActionModals";
 
 const HealthDashboard = () => {
+  const [activeAction, setActiveAction] = useState<"meal" | "water" | "exercise" | "weight" | null>(null);
+
   const progressRings = [
     { value: 75, label: "Calories", color: "text-primary", icon: Flame },
     { value: 60, label: "Protein", color: "text-secondary", icon: AppleIcon },
@@ -31,9 +35,9 @@ const HealthDashboard = () => {
         </div>
 
         {/* Dashboard Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           {/* Daily Progress */}
-          <Card className="border-2 hover:border-primary/50 transition-all duration-300 shadow-elegant bg-gradient-card">
+          <Card className="border-2 hover:border-primary/50 transition-all duration-300 shadow-elegant" style={{ background: 'linear-gradient(135deg, hsl(28 100% 90%), hsl(174 25% 85%))' }}>
             <CardHeader>
               <CardTitle className="font-montserrat text-xl">Daily Progress</CardTitle>
             </CardHeader>
@@ -83,7 +87,7 @@ const HealthDashboard = () => {
           </Card>
 
           {/* Current Streaks */}
-          <Card className="border-2 hover:border-primary/50 transition-all duration-300 shadow-elegant bg-gradient-card">
+          <Card className="border-2 hover:border-primary/50 transition-all duration-300 shadow-elegant" style={{ background: 'linear-gradient(135deg, hsl(0 0% 100%), hsl(174 25% 90%))' }}>
             <CardHeader>
               <CardTitle className="font-montserrat text-xl">Current Streaks</CardTitle>
             </CardHeader>
@@ -108,30 +112,37 @@ const HealthDashboard = () => {
           </Card>
 
           {/* Weight Journey */}
-          <Card className="border-2 hover:border-primary/50 transition-all duration-300 shadow-elegant bg-gradient-card">
+          <Card className="border-2 hover:border-primary/50 transition-all duration-300 shadow-elegant md:col-span-3" style={{ background: 'linear-gradient(135deg, hsl(0 0% 100%), hsl(84 20% 90%))' }}>
             <CardHeader>
               <CardTitle className="font-montserrat text-xl">Weight Journey</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="h-32 bg-muted/50 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <Weight className="h-8 w-8 text-primary mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Chart visualization</p>
+              <div className="flex gap-8 items-center">
+                <div className="flex-1">
+                  <div className="h-64 bg-muted/20 rounded-lg p-4 flex items-end gap-2">
+                    {[170, 168, 166, 165, 164, 163].map((weight, idx) => (
+                      <div key={idx} className="flex-1 flex flex-col items-center justify-end">
+                        <div 
+                          className="w-full bg-primary rounded-t-md transition-all hover:bg-primary/80"
+                          style={{ height: `${((weight - 155) / 20) * 100}%` }}
+                        />
+                        <span className="text-xs text-muted-foreground mt-2">Week {idx + 1}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="grid grid-rows-3 gap-6 text-center min-w-[120px]">
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Current</p>
-                    <p className="text-lg font-semibold">165 lbs</p>
+                    <p className="text-2xl font-bold">163 lbs</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Goal</p>
-                    <p className="text-lg font-semibold">160 lbs</p>
+                    <p className="text-2xl font-bold">160 lbs</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Lost</p>
-                    <p className="text-lg font-semibold text-primary">-5 lbs</p>
+                    <p className="text-2xl font-bold text-primary">-7 lbs</p>
                   </div>
                 </div>
               </div>
@@ -146,19 +157,39 @@ const HealthDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2">
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex-col gap-2 hover:bg-primary hover:text-primary-foreground transition-all" 
+                style={{ borderColor: 'hsl(174 25% 65%)' }}
+                onClick={() => setActiveAction("meal")}
+              >
                 <Utensils className="h-6 w-6" />
                 <span>Log Meal</span>
               </Button>
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2">
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex-col gap-2 hover:bg-primary hover:text-primary-foreground transition-all" 
+                style={{ borderColor: 'hsl(174 25% 65%)' }}
+                onClick={() => setActiveAction("water")}
+              >
                 <Droplet className="h-6 w-6" />
                 <span>Track Water</span>
               </Button>
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2">
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex-col gap-2 hover:bg-primary hover:text-primary-foreground transition-all" 
+                style={{ borderColor: 'hsl(174 25% 65%)' }}
+                onClick={() => setActiveAction("exercise")}
+              >
                 <Dumbbell className="h-6 w-6" />
                 <span>Log Exercise</span>
               </Button>
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2">
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex-col gap-2 hover:bg-primary hover:text-primary-foreground transition-all" 
+                style={{ borderColor: 'hsl(174 25% 65%)' }}
+                onClick={() => setActiveAction("weight")}
+              >
                 <Weight className="h-6 w-6" />
                 <span>Update Weight</span>
               </Button>
@@ -166,6 +197,11 @@ const HealthDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <QuickActionModals 
+        activeAction={activeAction}
+        onClose={() => setActiveAction(null)}
+      />
     </section>
   );
 };

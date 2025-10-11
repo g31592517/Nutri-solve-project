@@ -1,9 +1,18 @@
+import { useState } from "react";
 import { MessageSquare, Users, TrendingUp, Award, Image, Send } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { CommentsModal } from "./community/CommentsModal";
 
-const Community = () => {
+interface CommunityProps {
+  onOpenAuth: (tab?: "signin" | "signup") => void;
+}
+
+const Community = ({ onOpenAuth }: CommunityProps) => {
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<any>(null);
+
   const categories = [
     { id: "all", label: "All Topics" },
     { id: "allergies", label: "Allergy Support" },
@@ -13,8 +22,19 @@ const Community = () => {
     { id: "qa", label: "Expert Q&A" },
   ];
 
+  const sampleComments = [
+    { id: 1, author: "John D.", avatar: "JD", content: "Great job! Keep it up!", likes: 5, timestamp: "1 hour ago" },
+    { id: 2, author: "Lisa P.", avatar: "LP", content: "Can you share your meal plan?", likes: 3, timestamp: "45 mins ago" },
+    { id: 3, author: "Tom R.", avatar: "TR", content: "Inspiring! I'm starting today!", likes: 8, timestamp: "30 mins ago" },
+  ];
+
+  const handleViewComments = (post: any) => {
+    setSelectedPost(post);
+    setShowCommentsModal(true);
+  };
+
   return (
-    <section id="community" className="py-20 bg-gradient-hero">
+    <section id="community" className="py-20 bg-gradient-community">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="font-montserrat font-bold text-4xl md:text-5xl text-foreground mb-4">
@@ -80,7 +100,13 @@ const Community = () => {
                   Just completed my first week on the budget meal plan! Down 3 lbs and spent only $45. The AI suggestions really work! 🎉
                 </p>
                 <div className="flex gap-4 text-sm text-muted-foreground">
-                  <button className="hover:text-primary transition-colors flex items-center gap-1">
+                  <button 
+                    className="hover:text-primary transition-colors flex items-center gap-1 font-semibold"
+                    onClick={() => handleViewComments({
+                      author: "Sarah M.",
+                      content: "Just completed my first week on the budget meal plan! Down 3 lbs and spent only $45. The AI suggestions really work! 🎉"
+                    })}
+                  >
                     <MessageSquare className="h-4 w-4" />
                     24 Comments
                   </button>
@@ -104,7 +130,13 @@ const Community = () => {
                   Anyone else managing nut allergies? Found some amazing substitutes in the recipe section. Happy to share my favorites!
                 </p>
                 <div className="flex gap-4 text-sm text-muted-foreground">
-                  <button className="hover:text-primary transition-colors flex items-center gap-1">
+                  <button 
+                    className="hover:text-primary transition-colors flex items-center gap-1 font-semibold"
+                    onClick={() => handleViewComments({
+                      author: "Mike T.",
+                      content: "Anyone else managing nut allergies? Found some amazing substitutes in the recipe section. Happy to share my favorites!"
+                    })}
+                  >
                     <MessageSquare className="h-4 w-4" />
                     16 Comments
                   </button>
@@ -163,6 +195,14 @@ const Community = () => {
           </div>
         </div>
       </div>
+
+      <CommentsModal
+        isOpen={showCommentsModal}
+        onClose={() => setShowCommentsModal(false)}
+        postAuthor={selectedPost?.author || ""}
+        postContent={selectedPost?.content || ""}
+        initialComments={sampleComments}
+      />
     </section>
   );
 };

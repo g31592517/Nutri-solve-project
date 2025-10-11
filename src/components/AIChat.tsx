@@ -1,11 +1,47 @@
-import { MessageCircle, Send } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MessageCircle, Send, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-const AIChat = () => {
+interface AIChatProps {
+  onOpenAuth: (tab?: "signin" | "signup") => void;
+}
+
+const AIChat = ({ onOpenAuth }: AIChatProps) => {
+  const [user, setUser] = useState<any>(null);
+  const [isLocked, setIsLocked] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      setIsLocked(!user);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+      setIsLocked(!session?.user);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSendMessage = () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to use the AI chat feature.",
+      });
+      onOpenAuth("signup");
+      return;
+    }
+  };
+
   return (
-    <section className="py-20">
+    <section className="py-20 bg-gradient-chat">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
@@ -25,7 +61,27 @@ const AIChat = () => {
             </p>
           </div>
 
-          <Card className="border-2 shadow-elegant bg-gradient-card">
+          <Card className={`border-2 shadow-elegant bg-gradient-card relative ${isLocked ? 'opacity-75' : ''}`}>
+            {isLocked && (
+              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+                <div className="text-center space-y-4 p-8">
+                  <Lock className="h-16 w-16 text-primary mx-auto" />
+                  <h3 className="font-montserrat font-bold text-2xl">Sign In Required</h3>
+                  <p className="text-muted-foreground max-w-sm">
+                    Please sign in or create an account to access the AI chat feature.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button variant="outline" onClick={() => onOpenAuth("signin")}>
+                      Sign In
+                    </Button>
+                    <Button onClick={() => onOpenAuth("signup")}>
+                      Create Account
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <CardContent className="p-6">
               <div className="space-y-4 mb-6 min-h-[300px] max-h-[400px] overflow-y-auto">
                 <div className="flex gap-3">
@@ -81,10 +137,13 @@ const AIChat = () => {
                 <Input
                   placeholder="Type your message..."
                   className="flex-1 font-inter border-2 focus-visible:ring-primary"
+                  disabled={isLocked}
                 />
                 <Button
                   size="icon"
                   className="bg-gradient-primary shadow-glow hover:scale-105 transition-transform"
+                  onClick={handleSendMessage}
+                  disabled={isLocked}
                 >
                   <Send className="h-5 w-5" />
                 </Button>
