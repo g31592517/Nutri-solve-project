@@ -1,0 +1,12 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#10b981"/>
+  
+  <!-- Leaf icon representing nutrition -->
+  <path d="M256 96C256 96 176 136 176 216C176 256 196 286 226 306C206 336 176 366 146 366C116 366 96 346 96 316C96 266 136 226 176 196C156 186 136 176 116 166C86 186 66 216 66 256C66 326 116 376 186 376C246 376 296 336 336 286C366 296 406 306 446 306C476 286 496 256 496 216C496 136 416 96 416 96C416 96 396 156 376 196C336 216 296 226 256 226C256 186 256 146 256 96Z" fill="white"/>
+  
+  <!-- Small decorative elements -->
+  <circle cx="340" cy="180" r="12" fill="#dcfce7"/>
+  <circle cx="380" cy="220" r="8" fill="#dcfce7"/>
+  <circle cx="300" cy="160" r="6" fill="#dcfce7"/>
+</svg>

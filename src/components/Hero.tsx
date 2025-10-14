@@ -1,7 +1,11 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const Hero = () => {
+interface HeroProps {
+  onOpenAuth?: (tab?: "signin" | "signup") => void;
+}
+
+const Hero = ({ onOpenAuth }: HeroProps) => {
   return (
     <section
       id="home"
@@ -20,7 +24,7 @@ const Hero = () => {
 
           <h1 className="font-montserrat font-bold text-5xl md:text-7xl text-foreground mb-6 animate-fade-up">
             Transform Your{" "}
-            <span className="bg-gradient-primary bg-clip-text text-transparent">
+            <span className="gradient-text">
               Nutrition Journey
             </span>
           </h1>
@@ -34,6 +38,7 @@ const Hero = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up" style={{ animationDelay: '0.2s' }}>
             <Button
               size="lg"
+              onClick={() => onOpenAuth?.("signup")}
               className="bg-gradient-primary font-inter font-semibold text-lg px-8 py-6 shadow-glow hover:scale-105 transition-transform group"
             >
               Start Your Journey

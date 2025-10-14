@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, User, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 interface SignUpFormProps {
@@ -13,8 +13,9 @@ interface SignUpFormProps {
 export const SignUpForm = ({ onSuccess }: SignUpFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
+  const { signup } = useAuth();
   const { toast } = useToast();
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -22,28 +23,17 @@ export const SignUpForm = ({ onSuccess }: SignUpFormProps) => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-          emailRedirectTo: `${window.location.origin}`,
-        },
-      });
-
-      if (error) throw error;
+      await signup(email, username, password);
 
       toast({
         title: "Success!",
-        description: "Your account has been created. You can now sign in.",
+        description: "Your account has been created. You are now signed in.",
       });
       onSuccess();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to create account",
         variant: "destructive",
       });
     } finally {
@@ -54,15 +44,15 @@ export const SignUpForm = ({ onSuccess }: SignUpFormProps) => {
   return (
     <form onSubmit={handleSignUp} className="space-y-4 py-4">
       <div className="space-y-2">
-        <Label htmlFor="fullName">Full Name</Label>
+        <Label htmlFor="username">Username</Label>
         <div className="relative">
           <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            id="fullName"
+            id="username"
             type="text"
-            placeholder="John Doe"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            placeholder="johndoe"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             className="pl-10"
             required
           />

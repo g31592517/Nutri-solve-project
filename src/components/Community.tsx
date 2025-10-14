@@ -1,17 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageSquare, Users, TrendingUp, Award, Image, Send } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { CommentsModal } from "./community/CommentsModal";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/contexts/UserProfileContext";
+import { useGamification } from "@/contexts/GamificationContext";
+import { communityApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface CommunityProps {
   onOpenAuth: (tab?: "signin" | "signup") => void;
 }
 
 const Community = ({ onOpenAuth }: CommunityProps) => {
+  const { isAuthenticated } = useAuth();
+  const { profile } = useUserProfile();
+  const { logAction, gamification, updateChallengeProgress } = useGamification();
+  const { toast } = useToast();
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any>(null);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [newPostContent, setNewPostContent] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [loading, setLoading] = useState(false);
 
   const categories = [
     { id: "all", label: "All Topics" },
@@ -22,15 +36,100 @@ const Community = ({ onOpenAuth }: CommunityProps) => {
     { id: "qa", label: "Expert Q&A" },
   ];
 
-  const sampleComments = [
-    { id: 1, author: "John D.", avatar: "JD", content: "Great job! Keep it up!", likes: 5, timestamp: "1 hour ago" },
-    { id: 2, author: "Lisa P.", avatar: "LP", content: "Can you share your meal plan?", likes: 3, timestamp: "45 mins ago" },
-    { id: 3, author: "Tom R.", avatar: "TR", content: "Inspiring! I'm starting today!", likes: 8, timestamp: "30 mins ago" },
-  ];
+  useEffect(() => {
+    loadPosts();
+  }, [selectedCategory]);
+
+  const loadPosts = async () => {
+    try {
+      const response = await communityApi.getPosts(selectedCategory !== 'all' ? selectedCategory : undefined);
+      if (response.success) {
+        setPosts(response.posts);
+      }
+    } catch (error) {
+      console.error('Failed to load posts:', error);
+    }
+  };
+
+  const handleCreatePost = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to create a post.",
+      });
+      onOpenAuth("signup");
+      return;
+    }
+
+    if (!newPostContent.trim()) {
+      toast({
+        title: "Error",
+        description: "Post content cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await communityApi.createPost(newPostContent, selectedCategory);
+      if (response.success) {
+        // Log action for gamification
+        logAction({
+          type: 'community_post',
+          timestamp: new Date().toISOString(),
+          metadata: { category: selectedCategory },
+        });
+        
+        toast({
+          title: "Success",
+          description: "Your post has been created!",
+        });
+        setNewPostContent("");
+        loadPosts();
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create post",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLikePost = async (postId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to like posts.",
+      });
+      onOpenAuth("signup");
+      return;
+    }
+
+    try {
+      await communityApi.likePost(postId);
+      loadPosts();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to like post",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleViewComments = (post: any) => {
     setSelectedPost(post);
     setShowCommentsModal(true);
+  };
+
+  const getUserBadges = (userId: string) => {
+    // In a real app, this would come from the user's profile
+    // For now, show current user's badges
+    return gamification.badges.slice(0, 2);
   };
 
   return (
@@ -39,7 +138,7 @@ const Community = ({ onOpenAuth }: CommunityProps) => {
         <div className="text-center mb-16">
           <h2 className="font-montserrat font-bold text-4xl md:text-5xl text-foreground mb-4">
             Community{" "}
-            <span className="bg-gradient-primary bg-clip-text text-transparent">
+            <span className="gradient-text">
               Support Hub
             </span>
           </h2>
@@ -53,8 +152,9 @@ const Community = ({ onOpenAuth }: CommunityProps) => {
           {categories.map((category) => (
             <Button
               key={category.id}
-              variant={category.id === "all" ? "default" : "outline"}
+              variant={category.id === selectedCategory ? "default" : "outline"}
               className="animate-fade-in"
+              onClick={() => setSelectedCategory(category.id)}
             >
               {category.label}
             </Button>
@@ -70,80 +170,75 @@ const Community = ({ onOpenAuth }: CommunityProps) => {
                 <Textarea
                   placeholder="Share your nutrition journey, ask questions, or inspire others..."
                   className="min-h-[120px] mb-4 resize-none"
+                  value={newPostContent}
+                  onChange={(e) => setNewPostContent(e.target.value)}
                 />
                 <div className="flex justify-between items-center">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" disabled>
                     <Image className="mr-2 h-4 w-4" />
-                    Add Image
+                    Add Image (Coming Soon)
                   </Button>
-                  <Button size="sm">
+                  <Button size="sm" onClick={handleCreatePost} disabled={loading || !newPostContent.trim()}>
                     <Send className="mr-2 h-4 w-4" />
-                    Share Post
+                    {loading ? "Posting..." : "Share Post"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Sample Posts */}
-            <Card className="border-2 hover:border-primary/50 transition-all duration-300 shadow-elegant animate-fade-up">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-montserrat font-semibold text-foreground mb-1">Sarah M.</h4>
-                    <p className="text-sm text-muted-foreground">2 hours ago</p>
-                  </div>
-                </div>
-                <p className="text-foreground mb-4">
-                  Just completed my first week on the budget meal plan! Down 3 lbs and spent only $45. The AI suggestions really work! 🎉
-                </p>
-                <div className="flex gap-4 text-sm text-muted-foreground">
-                  <button 
-                    className="hover:text-primary transition-colors flex items-center gap-1 font-semibold"
-                    onClick={() => handleViewComments({
-                      author: "Sarah M.",
-                      content: "Just completed my first week on the budget meal plan! Down 3 lbs and spent only $45. The AI suggestions really work! 🎉"
-                    })}
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    24 Comments
-                  </button>
-                  <button className="hover:text-primary transition-colors">👏 48 Likes</button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 hover:border-primary/50 transition-all duration-300 shadow-elegant animate-fade-up" style={{ animationDelay: "0.1s" }}>
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-secondary" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-montserrat font-semibold text-foreground mb-1">Mike T.</h4>
-                    <p className="text-sm text-muted-foreground">5 hours ago</p>
-                  </div>
-                </div>
-                <p className="text-foreground mb-4">
-                  Anyone else managing nut allergies? Found some amazing substitutes in the recipe section. Happy to share my favorites!
-                </p>
-                <div className="flex gap-4 text-sm text-muted-foreground">
-                  <button 
-                    className="hover:text-primary transition-colors flex items-center gap-1 font-semibold"
-                    onClick={() => handleViewComments({
-                      author: "Mike T.",
-                      content: "Anyone else managing nut allergies? Found some amazing substitutes in the recipe section. Happy to share my favorites!"
-                    })}
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    16 Comments
-                  </button>
-                  <button className="hover:text-primary transition-colors">👏 32 Likes</button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Posts */}
+            {posts.length === 0 ? (
+              <Card className="border-2 shadow-elegant">
+                <CardContent className="p-12 text-center">
+                  <p className="text-muted-foreground">No posts yet. Be the first to share!</p>
+                </CardContent>
+              </Card>
+            ) : (
+              posts.map((post, index) => (
+                <Card key={post._id} className="border-2 hover:border-primary/50 transition-all duration-300 shadow-elegant animate-fade-up" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        {post.avatar ? (
+                          <span className="font-semibold text-primary">{post.avatar}</span>
+                        ) : (
+                          <Users className="h-6 w-6 text-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-montserrat font-semibold text-foreground">{post.author}</h4>
+                          {getUserBadges(post.authorId).map((badge) => (
+                            <Badge key={badge.id} variant="secondary" className="text-xs">
+                              {badge.icon}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(post.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-foreground mb-4 whitespace-pre-wrap">{post.content}</p>
+                    <div className="flex gap-4 text-sm text-muted-foreground">
+                      <button 
+                        className="hover:text-primary transition-colors flex items-center gap-1 font-semibold"
+                        onClick={() => handleViewComments(post)}
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        {post.comments?.length || 0} Comments
+                      </button>
+                      <button 
+                        className="hover:text-primary transition-colors flex items-center gap-1"
+                        onClick={() => handleLikePost(post._id)}
+                      >
+                        👏 {post.likes || 0} Likes
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
 
           {/* Sidebar */}
@@ -156,19 +251,34 @@ const Community = ({ onOpenAuth }: CommunityProps) => {
                   Active Challenges
                 </h4>
                 <div className="space-y-4">
-                  <div>
-                    <h5 className="font-semibold text-foreground mb-2">7-Day Healthy Breakfast Challenge</h5>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Start your day right with nutritious breakfasts
-                    </p>
-                    <div className="mb-2">
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: "60%" }}></div>
+                  {gamification.challenges.slice(0, 2).map((challenge) => (
+                    <div key={challenge.id}>
+                      <h5 className="font-semibold text-foreground mb-2">{challenge.name}</h5>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {challenge.description}
+                      </p>
+                      <div className="mb-2">
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div 
+                            className="bg-primary h-2 rounded-full transition-all duration-300" 
+                            style={{ width: `${(challenge.progress / challenge.target) * 100}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {challenge.progress}/{challenge.target} {challenge.type === 'daily' ? 'days' : 'completed'}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">3/7 days completed</p>
+                      {challenge.progress === 0 ? (
+                        <Button size="sm" className="w-full" onClick={() => updateChallengeProgress(challenge.id, 1)}>
+                          Join Challenge
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" className="w-full">
+                          {Math.round((challenge.progress / challenge.target) * 100)}% Complete
+                        </Button>
+                      )}
                     </div>
-                    <Button size="sm" className="w-full">Join Challenge</Button>
-                  </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -201,7 +311,7 @@ const Community = ({ onOpenAuth }: CommunityProps) => {
         onClose={() => setShowCommentsModal(false)}
         postAuthor={selectedPost?.author || ""}
         postContent={selectedPost?.content || ""}
-        initialComments={sampleComments}
+        initialComments={selectedPost?.comments || []}
       />
     </section>
   );

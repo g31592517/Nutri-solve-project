@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PricingSectionProps {
   onOpenAuth: (tab?: "signin" | "signup") => void;
@@ -50,12 +50,11 @@ const plans = [
 
 export const PricingSection = ({ onOpenAuth }: PricingSectionProps) => {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
   const handleSelectPlan = async (planName: string, price: number) => {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
+    if (!isAuthenticated) {
       toast({
         title: "Authentication Required",
         description: "Please sign in or create an account to continue with payment.",
@@ -73,8 +72,8 @@ export const PricingSection = ({ onOpenAuth }: PricingSectionProps) => {
     }
 
     toast({
-      title: "Payment Processing",
-      description: `Proceeding to payment for ${planName} plan...`,
+      title: "Coming Soon",
+      description: `Payment processing for ${planName} plan will be available soon.`,
     });
   };
 
@@ -84,7 +83,7 @@ export const PricingSection = ({ onOpenAuth }: PricingSectionProps) => {
         <div className="text-center mb-16">
           <h2 className="font-montserrat font-bold text-4xl md:text-5xl text-foreground mb-4">
             Pricing &{" "}
-            <span className="bg-gradient-primary bg-clip-text text-transparent">
+            <span className="gradient-text">
               Budget Planning
             </span>
           </h2>

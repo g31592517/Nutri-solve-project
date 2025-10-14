@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Lock, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 interface SignInFormProps {
@@ -16,6 +16,7 @@ export const SignInForm = ({ onSuccess, onForgotPassword }: SignInFormProps) => 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const { toast } = useToast();
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
@@ -23,12 +24,7 @@ export const SignInForm = ({ onSuccess, onForgotPassword }: SignInFormProps) => 
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
+      await login(email, password);
 
       toast({
         title: "Success!",
@@ -38,7 +34,7 @@ export const SignInForm = ({ onSuccess, onForgotPassword }: SignInFormProps) => 
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to sign in",
         variant: "destructive",
       });
     } finally {
@@ -47,22 +43,10 @@ export const SignInForm = ({ onSuccess, onForgotPassword }: SignInFormProps) => 
   };
 
   const handleGoogleSignIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}`,
-        },
-      });
-
-      if (error) throw error;
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Coming Soon",
+      description: "Google sign-in will be available in a future update.",
+    });
   };
 
   return (

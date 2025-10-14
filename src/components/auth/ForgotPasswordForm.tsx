@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Loader2, ArrowLeft } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface ForgotPasswordFormProps {
@@ -21,21 +20,17 @@ export const ForgotPasswordForm = ({ onBack }: ForgotPasswordFormProps) => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
-
-      setSent(true);
+      // TODO: Implement password reset API endpoint
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       toast({
-        title: "Email sent!",
-        description: "Check your email for the password reset link.",
+        title: "Coming Soon",
+        description: "Password reset functionality will be available in a future update.",
       });
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to reset password",
         variant: "destructive",
       });
     } finally {

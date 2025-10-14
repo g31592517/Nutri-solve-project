@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Lightbulb, GraduationCap, Calculator, ChevronDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,8 +8,33 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { CalculatorModal } from "./CalculatorModal";
+import { useGamification } from "@/contexts/GamificationContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const EducationalResources = () => {
+  const [showCalculator, setShowCalculator] = useState(false);
+  const { logAction } = useGamification();
+  const { isAuthenticated } = useAuth();
+
+  const handleCalculatorOpen = () => {
+    setShowCalculator(true);
+    if (isAuthenticated) {
+      logAction({
+        type: 'calculator',
+        timestamp: new Date().toISOString(),
+      });
+    }
+  };
+
+  const handleMythRead = () => {
+    if (isAuthenticated) {
+      logAction({
+        type: 'myth_read',
+        timestamp: new Date().toISOString(),
+      });
+    }
+  };
   const resources = [
     {
       icon: Lightbulb,
@@ -16,6 +42,7 @@ const EducationalResources = () => {
       description: "Separate fact from fiction with evidence-based nutrition information",
       action: "Explore Myths",
       color: "bg-primary/10 text-primary",
+      onClick: () => document.getElementById('myths-section')?.scrollIntoView({ behavior: 'smooth' }),
     },
     {
       icon: GraduationCap,
@@ -23,6 +50,7 @@ const EducationalResources = () => {
       description: "Learn fundamental nutrition concepts and principles",
       action: "Start Learning",
       color: "bg-secondary/10 text-secondary",
+      onClick: () => document.getElementById('myths-section')?.scrollIntoView({ behavior: 'smooth' }),
     },
     {
       icon: Calculator,
@@ -30,6 +58,7 @@ const EducationalResources = () => {
       description: "Calculate BMI, BMR, and other health metrics",
       action: "Calculate Now",
       color: "bg-accent/10 text-accent",
+      onClick: handleCalculatorOpen,
     },
   ];
 
@@ -58,7 +87,7 @@ const EducationalResources = () => {
         <div className="text-center mb-16">
           <h2 className="font-montserrat font-bold text-4xl md:text-5xl text-foreground mb-4">
             Educational{" "}
-            <span className="bg-gradient-primary bg-clip-text text-transparent">
+            <span className="gradient-text">
               Resources
             </span>
           </h2>
@@ -87,7 +116,7 @@ const EducationalResources = () => {
                   <p className="font-inter text-muted-foreground mb-6">
                     {resource.description}
                   </p>
-                  <Button className="w-full">{resource.action}</Button>
+                  <Button className="w-full" onClick={resource.onClick}>{resource.action}</Button>
                 </CardContent>
               </Card>
             );
@@ -95,7 +124,7 @@ const EducationalResources = () => {
         </div>
 
         {/* Myth Busters Section */}
-        <Card className="border-2 bg-gradient-card shadow-elegant max-w-4xl mx-auto">
+        <Card id="myths-section" className="border-2 bg-gradient-card shadow-elegant max-w-4xl mx-auto">
           <CardContent className="p-8">
             <div className="text-center mb-8">
               <h3 className="font-montserrat font-bold text-2xl md:text-3xl text-foreground mb-2">
@@ -106,7 +135,7 @@ const EducationalResources = () => {
               </p>
             </div>
 
-            <Accordion type="single" collapsible className="space-y-4">
+            <Accordion type="single" collapsible className="space-y-4" onValueChange={handleMythRead}>
               {myths.map((myth, index) => (
                 <AccordionItem
                   key={index}
@@ -125,6 +154,11 @@ const EducationalResources = () => {
           </CardContent>
         </Card>
       </div>
+      
+      <CalculatorModal 
+        isOpen={showCalculator} 
+        onClose={() => setShowCalculator(false)} 
+      />
     </section>
   );
 };

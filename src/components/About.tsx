@@ -21,7 +21,7 @@ const About = () => {
             </div>
             <h2 className="font-montserrat font-bold text-4xl md:text-5xl text-foreground mb-6">
               Empowering Your{" "}
-              <span className="bg-gradient-primary bg-clip-text text-transparent">
+              <span className="gradient-text">
                 Wellness Journey
               </span>
             </h2>

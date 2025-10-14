@@ -12,6 +12,16 @@ dist
 dist-ssr
 *.local
 
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Backend data
+backend/data/*.zip
+backend/data/FoodData_Central_*
+backend/data/processed-usda.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

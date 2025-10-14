@@ -1,8 +1,19 @@
 import { useState, useEffect } from "react";
-import { Menu, X, Leaf } from "lucide-react";
+import { Menu, X, Leaf, User, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/AuthContext";
+import { useGamification } from "@/contexts/GamificationContext";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { UserDashboard } from "@/components/profile/UserDashboard";
 
 interface NavigationProps {
   onOpenAuth: (tab?: "signin" | "signup") => void;
@@ -11,7 +22,9 @@ interface NavigationProps {
 const Navigation = ({ onOpenAuth }: NavigationProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const { user, logout } = useAuth();
+  const { gamification } = useGamification();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -19,37 +32,18 @@ const Navigation = ({ onOpenAuth }: NavigationProps) => {
       setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener("scroll", handleScroll);
-    
-    // Check for existing session
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null);
-    });
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      subscription.unsubscribe();
     };
   }, []);
 
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Signed out",
-        description: "You've been signed out successfully.",
-      });
-    }
+  const handleSignOut = () => {
+    logout();
+    toast({
+      title: "Signed out",
+      description: "You've been signed out successfully.",
+    });
   };
 
   const navLinks = [
@@ -98,12 +92,40 @@ const Navigation = ({ onOpenAuth }: NavigationProps) => {
           <div className="hidden md:flex items-center gap-4">
             {user ? (
               <>
-                <span className="text-sm text-muted-foreground">
-                  {user.email}
-                </span>
-                <Button variant="ghost" size="lg" className="font-inter" onClick={handleSignOut}>
-                  Sign Out
-                </Button>
+                {gamification.streaks.currentStreak > 0 && (
+                  <div className="flex items-center gap-1 px-3 py-1 bg-primary/10 rounded-full text-sm font-medium">
+                    <Flame className="h-4 w-4 text-orange-500" />
+                    <span>{gamification.streaks.currentStreak}</span>
+                  </div>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      <div>
+                        <p className="font-semibold">{user.username}</p>
+                        <p className="text-xs text-muted-foreground font-normal">{user.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setShowDashboard(true)}>
+                      <User className="mr-2 h-4 w-4" />
+                      My Dashboard
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Flame className="mr-2 h-4 w-4" />
+                      {gamification.points} Points
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
               <>
@@ -152,9 +174,15 @@ const Navigation = ({ onOpenAuth }: NavigationProps) => {
               ))}
               <li className="flex flex-col gap-2 pt-2">
                 {user ? (
-                  <Button variant="ghost" className="w-full font-inter" onClick={handleSignOut}>
-                    Sign Out
-                  </Button>
+                  <>
+                    <Button variant="ghost" className="w-full font-inter" onClick={() => { setShowDashboard(true); setIsMobileMenuOpen(false); }}>
+                      <User className="mr-2 h-4 w-4" />
+                      My Dashboard
+                    </Button>
+                    <Button variant="ghost" className="w-full font-inter" onClick={handleSignOut}>
+                      Sign Out
+                    </Button>
+                  </>
                 ) : (
                   <>
                     <Button variant="ghost" className="w-full font-inter" onClick={() => onOpenAuth("signin")}>
@@ -170,6 +198,13 @@ const Navigation = ({ onOpenAuth }: NavigationProps) => {
           </div>
         )}
       </nav>
+
+      {/* Dashboard Modal */}
+      <Dialog open={showDashboard} onOpenChange={setShowDashboard}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <UserDashboard onEditProfile={() => {}} />
+        </DialogContent>
+      </Dialog>
     </header>
   );
 };

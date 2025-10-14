@@ -104,7 +104,7 @@ export const SpecialistsSection = () => {
         <div className="text-center mb-16">
           <h2 className="font-montserrat font-bold text-4xl md:text-5xl text-foreground mb-4">
             Meet Our Nutrition{" "}
-            <span className="bg-gradient-primary bg-clip-text text-transparent">
+            <span className="gradient-text">
               Specialists
             </span>
           </h2>

@@ -1,73 +1,99 @@
-# Welcome to your Lovable project
+# NutriSolve - AI-Powered Nutrition Platform
 
-## Project info
+A complete full-stack nutrition and diet application with AI chat (Ollama + USDA RAG), MongoDB authentication, community features, and educational resources.
 
-**URL**: https://lovable.dev/projects/4dd41bb4-1a15-4f1a-98b8-c421c03c4c3d
+## 🚀 Quick Start
 
-## How can I edit this code?
+```bash
+# Install dependencies
+npm install
 
-There are several ways of editing your application.
+# Configure environment
+cp .env.example .env
 
-**Use Lovable**
+# Setup Ollama and download USDA data
+npm run setup
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/4dd41bb4-1a15-4f1a-98b8-c421c03c4c3d) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Start both frontend and backend
+npm start
 ```
 
-**Edit a file directly in GitHub**
+**Access the application:**
+- Frontend: http://localhost:8080
+- Backend API: http://localhost:5000
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📚 Documentation
 
-**Use GitHub Codespaces**
+- **[QUICKSTART.md](./QUICKSTART.md)** - Get started in 5 minutes
+- **[README_NUTRISOLVE.md](./README_NUTRISOLVE.md)** - Complete documentation
+- **[PROJECT_SUMMARY.md](./PROJECT_SUMMARY.md)** - Implementation details
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## ✨ Features
 
-## What technologies are used for this project?
+- **AI Chat Assistant**: Ollama-powered nutrition advice with USDA food database
+- **Authentication**: JWT-based auth with MongoDB
+- **Community Hub**: Posts, comments, likes, and category filtering
+- **Health Calculators**: BMI and BMR calculators
+- **Meal Planning**: Weekly meal planner (coming soon)
+- **Responsive UI**: Modern, beautiful interface with Tailwind CSS
 
-This project is built with:
+## 🛠️ Tech Stack
 
+**Frontend:**
+- React 18 + TypeScript
 - Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- TailwindCSS + shadcn/ui
+- React Router
 
-## How can I deploy this project?
+**Backend:**
+- Node.js + Express + TypeScript
+- MongoDB + Mongoose
+- Ollama (AI)
+- JWT Authentication
+- USDA FoodData Central
 
-Simply open [Lovable](https://lovable.dev/projects/4dd41bb4-1a15-4f1a-98b8-c421c03c4c3d) and click on Share -> Publish.
+## 📋 Prerequisites
 
-## Can I connect a custom domain to my Lovable project?
+- Node.js 16+
+- MongoDB (local or Atlas)
+- Ollama (`curl -fsSL https://ollama.com/install.sh | sh`)
 
-Yes, you can!
+## 🎯 Scripts
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```bash
+npm start              # Run frontend + backend
+npm run start:frontend # Frontend only (Vite)
+npm run start:backend  # Backend only (Express)
+npm run download-data  # Download USDA dataset
+npm run setup          # Full setup (Ollama + data)
+npm run build          # Build for production
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 🔐 Environment Variables
+
+Create `.env` in the root directory:
+
+```env
+MONGO_URI=mongodb://localhost:27017/nutrisolve
+JWT_SECRET=your-super-secret-key
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=phi3:mini
+PORT=5000
+FRONTEND_URL=http://localhost:8080
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+MIT License - See LICENSE file for details
+
+---
+
+Built with ❤️ for better nutrition and health
