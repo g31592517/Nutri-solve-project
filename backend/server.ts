@@ -17,6 +17,7 @@ dotenv.config({ path: join(__dirname, '../.env') });
 // Import routes
 import authRoutes from './routes/auth.js';
 import apiRoutes from './routes/api.js';
+import recommendationRoutes from './routes/recommendations.js';
 
 // Import chat controller to initialize data
 import { loadUSDAData } from './controllers/chatController.js';
@@ -89,6 +90,7 @@ loadUSDAData()
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
+app.use('/api', recommendationRoutes);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
