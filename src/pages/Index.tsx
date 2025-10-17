@@ -7,7 +7,7 @@ import AIChat from "@/components/AIChat";
 import Community from "@/components/Community";
 import HealthDashboard from "@/components/HealthDashboard";
 import EducationalResources from "@/components/EducationalResources";
-import WeeklyMealPlanner from "@/components/WeeklyMealPlanner";
+import EnhancedWeeklyMealPlanner from "@/components/meal-plan/EnhancedWeeklyMealPlanner";
 import Testimonials from "@/components/Testimonials";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
@@ -58,7 +58,7 @@ const Index = () => {
         <Community onOpenAuth={handleOpenAuth} />
         <HealthDashboard />
         <EducationalResources />
-        <WeeklyMealPlanner />
+        <EnhancedWeeklyMealPlanner />
         <Testimonials />
         <Contact />
       </main>

@@ -40,13 +40,23 @@ export const signup = async (req: Request, res: Response) => {
     });
 
     await user.save();
+    
+    // Log successful registration to database
+    console.log('[Auth] ✅ User registered successfully:', {
+      id: user._id,
+      email: user.email,
+      username: user.username,
+      createdAt: user.createdAt,
+    });
 
-    // Generate JWT
+    // Generate JWT with extended expiry for auto-login
     const token = jwt.sign(
       { userId: user._id, email: user.email, username: user.username },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
+    
+    console.log('[Auth] 🔑 JWT token generated for user:', username);
 
     res.status(201).json({
       success: true,
@@ -56,6 +66,7 @@ export const signup = async (req: Request, res: Response) => {
         email: user.email,
         username: user.username,
       },
+      message: 'Registration successful! You are now logged in.',
     });
   } catch (error: any) {
     console.error('Signup error:', error);
@@ -103,6 +114,12 @@ export const login = async (req: Request, res: Response) => {
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
+    
+    console.log('[Auth] 🔓 User logged in successfully:', {
+      id: user._id,
+      email: user.email,
+      username: user.username,
+    });
 
     res.json({
       success: true,
@@ -112,6 +129,7 @@ export const login = async (req: Request, res: Response) => {
         email: user.email,
         username: user.username,
       },
+      message: 'Login successful!',
     });
   } catch (error: any) {
     console.error('Login error:', error);

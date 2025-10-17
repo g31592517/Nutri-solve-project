@@ -69,6 +69,67 @@ export const chatApi = {
   },
 };
 
+// Meal Planning API
+export const mealPlanApi = {
+  generatePlan: async (profile: any, budget: string, preferences: string, varietyMode: string) => {
+    return fetchApi('/meal-plan/generate', {
+      method: 'POST',
+      body: JSON.stringify({ profile, budget, preferences, varietyMode }),
+    });
+  },
+
+  swapMeal: async (mealName: string, mealType: string, day: string, profile: any, budget: string, preferences: string) => {
+    return fetchApi('/meal-plan/swap', {
+      method: 'POST',
+      body: JSON.stringify({ mealName, mealType, day, profile, budget, preferences }),
+    });
+  },
+
+  extractPreferences: async (text: string) => {
+    return fetchApi('/meal-plan/extract-preferences', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+  },
+
+  ocrImage: async (imageFile: File) => {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    
+    const token = localStorage.getItem('authToken');
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_URL}/meal-plan/ocr`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'OCR failed');
+    }
+    return data;
+  },
+
+  generateInsights: async (plan: any, profile: any) => {
+    return fetchApi('/meal-plan/insights', {
+      method: 'POST',
+      body: JSON.stringify({ plan, profile }),
+    });
+  },
+
+  generateShoppingList: async (plan: any, pantryItems: string[]) => {
+    return fetchApi('/meal-plan/shopping-list', {
+      method: 'POST',
+      body: JSON.stringify({ plan, pantryItems }),
+    });
+  },
+};
+
 // Community API
 export const communityApi = {
   getPosts: async (category?: string) => {

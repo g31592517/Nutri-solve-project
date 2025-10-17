@@ -34,3 +34,6 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
     });
   }
 };
+
+// Export alias for backward compatibility
+export const authenticateToken = authenticate;

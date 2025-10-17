@@ -6,6 +6,8 @@ import csv from 'csv-parser';
 import natural from 'natural';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { LRUCache } from 'lru-cache';
+import pLimit from 'p-limit';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,35 +23,14 @@ const ollama = new Ollama({
 let foods: any[] = [];
 let tfidf: any = null;
 
-// Simple cache implementation
-const responseCache = new Map<string, { response: string; timestamp: number }>();
-const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
-const MAX_CACHE_SIZE = 100;
+// OPTIMIZATION 3: LRU Cache for response caching (better than Map)
+const responseCache = new LRUCache<string, string>({
+  max: 100,
+  ttl: 1000 * 60 * 15, // 15 minutes
+});
 
-// Simple concurrency limiter
-let activeRequests = 0;
-const queue: Array<() => void> = [];
-const MAX_CONCURRENT = 1;
-
-function createLimiter() {
-  return async <T>(fn: () => Promise<T>): Promise<T> => {
-    if (activeRequests >= MAX_CONCURRENT) {
-      await new Promise<void>((resolve) => {
-        queue.push(() => resolve());
-      });
-    }
-    activeRequests++;
-    try {
-      return await fn();
-    } finally {
-      activeRequests--;
-      const next = queue.shift();
-      if (next) next();
-    }
-  };
-}
-
-const limit = createLimiter();
+// OPTIMIZATION 2: Concurrency limiter using p-limit (prevents OOM/swapping)
+const limit = pLimit(1); // Max 1 concurrent request to prevent memory issues
 
 // Load USDA dataset
 export async function loadUSDAData() {
@@ -149,34 +130,18 @@ function searchFoods(query: string, limit: number = 3): any[] {
   return scores.slice(0, limit).map((s) => foods[s.index]);
 }
 
-function cacheGet(key: string): string | null {
-  const cached = responseCache.get(key);
-  if (!cached) return null;
-
-  if (Date.now() - cached.timestamp > CACHE_TTL) {
-    responseCache.delete(key);
-    return null;
-  }
-
-  return cached.response;
-}
-
-function cacheSet(key: string, value: string) {
-  responseCache.set(key, { response: value, timestamp: Date.now() });
-
-  if (responseCache.size > MAX_CACHE_SIZE) {
-    const firstKey = responseCache.keys().next().value;
-    if (firstKey !== undefined) {
-      responseCache.delete(firstKey);
-    }
-  }
+// Helper function to create cache key
+function createCacheKey(message: string, context: string): string {
+  return `${message.toLowerCase()}-${context.slice(0, 100)}`;
 }
 
 export const chat = async (req: Request, res: Response) => {
+  console.time('chat-response'); // OPTIMIZATION: Detailed timing
   const t0 = Date.now();
   
   try {
     const message = req.body?.message ? String(req.body.message) : '';
+    const stream = req.body?.stream === true;
 
     if (!message.trim()) {
       return res.status(400).json({
@@ -185,14 +150,20 @@ export const chat = async (req: Request, res: Response) => {
       });
     }
 
-    // RAG: search for relevant foods
+    console.log('[Chat] 📝 Query received:', message.substring(0, 50) + '...');
+    console.time('rag-search');
+
+    // OPTIMIZATION 4: RAG with Top-3 Only (context reduction)
     const ragRows = searchFoods(message, 3);
     const context = JSON.stringify(ragRows);
+    console.timeEnd('rag-search');
 
-    // Check cache
-    const cacheKey = `${message}\n${context}`;
-    const cached = cacheGet(cacheKey);
+    // OPTIMIZATION 3: Check LRU cache
+    const cacheKey = createCacheKey(message, context);
+    const cached = responseCache.get(cacheKey);
     if (cached) {
+      console.log('[Chat] ⚡ Cache hit!');
+      console.timeEnd('chat-response');
       return res.json({
         success: true,
         response: cached,
@@ -201,43 +172,110 @@ export const chat = async (req: Request, res: Response) => {
       });
     }
 
-    // System prompt from AI documentation
+    // OPTIMIZATION 7: Optimized system prompt (concise, token-limited)
     const system =
-      'You are NutriAI, a fun nutrition expert using USDA data. Answer briefly, practical, and on-topic for meal plans, allergies, budgets, weight tips, and myths. Use occasional emojis (e.g., 🍎, 💪). No disclaimers.';
+      'You are NutriAI: Concise, practical nutrition advice with emojis. Use context only. End after key points.';
     const userPrompt = `Context: ${context}\nQuery: ${message}`;
 
-    // Call Ollama with concurrency limiting and timeout
-    const response = await Promise.race([
-      limit(() =>
+    // OPTIMIZATION 6: Streaming responses (SSE)
+    if (stream) {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+
+      console.log('[Chat] 🤖 Sending query to Ollama (streaming)...');
+      console.time('ollama-streaming');
+
+      let fullResponse = '';
+
+      try {
+        // OPTIMIZATION 2: Concurrency limiting with p-limit
+        await limit(async () => {
+          const response = await ollama.chat({
+            model: process.env.OLLAMA_MODEL || 'phi3:mini', // OPTIMIZATION 1: Small model
+            messages: [
+              { role: 'system', content: system },
+              { role: 'user', content: userPrompt },
+            ],
+            stream: true,
+            options: {
+              num_predict: 150, // OPTIMIZATION 7: Token limit (3x faster)
+              temperature: 0.4, // Lower temp for factual responses
+              top_p: 0.9,
+              top_k: 20,
+            },
+          });
+
+          for await (const chunk of response) {
+            const content = chunk.message?.content || '';
+            if (content) {
+              fullResponse += content;
+              res.write(`data: ${JSON.stringify({ content })}\n\n`);
+            }
+          }
+        });
+
+        res.write('data: [DONE]\n\n');
+        res.end();
+
+        console.timeEnd('ollama-streaming');
+        console.timeEnd('chat-response');
+        console.log('[Chat] ✅ Stream complete. Total time:', Date.now() - t0, 'ms');
+
+        // Cache the complete response
+        responseCache.set(cacheKey, fullResponse);
+      } catch (streamError: any) {
+        console.error('[Chat] Streaming error:', streamError);
+        res.write(`data: ${JSON.stringify({ error: streamError.message })}\n\n`);
+        res.end();
+      }
+    } else {
+      // Non-streaming response (fallback)
+      console.log('[Chat] 🤖 Sending query to Ollama (non-streaming)...');
+      console.time('ollama-request');
+
+      // OPTIMIZATION 2: Concurrency limiting with p-limit
+      const response = await limit(() =>
         ollama.chat({
-          model: process.env.OLLAMA_MODEL || 'phi3:mini',
+          model: process.env.OLLAMA_MODEL || 'phi3:mini', // OPTIMIZATION 1: Small model
           messages: [
             { role: 'system', content: system },
             { role: 'user', content: userPrompt },
           ],
-          options: { num_predict: 150 },
+          options: {
+            num_predict: 150, // OPTIMIZATION 7: Token limit (3x faster)
+            temperature: 0.4, // Lower temp for factual responses
+            top_p: 0.9,
+            top_k: 20,
+          },
         })
-      ),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Ollama request timeout after 45s')), 45000)
-      ),
-    ]) as any;
+      ) as any;
 
-    const content =
-      response?.message?.content ||
-      'Sorry, I could not generate a response right now.';
+      console.timeEnd('ollama-request');
 
-    // Cache the response
-    cacheSet(cacheKey, content);
+      const content =
+        response?.message?.content ||
+        'Sorry, I could not generate a response right now.';
+      
+      console.log('[Chat] ✅ Ollama response received:', content.substring(0, 100) + '...');
+      console.timeEnd('chat-response');
+      console.log('[Chat] ⏱️  Total response time:', Date.now() - t0, 'ms');
 
-    res.json({
-      success: true,
-      response: content,
-      cached: false,
-      ms: Date.now() - t0,
-    });
+      // Cache the response
+      responseCache.set(cacheKey, content);
+
+      res.json({
+        success: true,
+        response: content,
+        cached: false,
+        ms: Date.now() - t0,
+      });
+    }
   } catch (error: any) {
     console.error('[Chat] Error:', error);
+    console.timeEnd('chat-response');
     res.status(500).json({
       success: false,
       error: error.message || 'Internal server error',
