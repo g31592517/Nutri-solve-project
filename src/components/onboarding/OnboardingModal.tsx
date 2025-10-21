@@ -42,7 +42,7 @@ export const OnboardingModal = ({ isOpen, onClose }: OnboardingModalProps) => {
       // Complete onboarding
       completeOnboarding(formData);
       toast({
-        title: "🎉 Profile Complete!",
+        title: "Profile Complete!",
         description: "Your personalized experience is ready.",
       });
       onClose();
@@ -280,7 +280,7 @@ export const OnboardingModal = ({ isOpen, onClose }: OnboardingModalProps) => {
 
             <div className="bg-primary/10 p-4 rounded-lg">
               <p className="text-sm text-foreground">
-                <strong>🎉 Almost done!</strong> This information will help us provide personalized recommendations, 
+                <strong>Almost done!</strong> This information will help us provide personalized recommendations, 
                 filter relevant community content, and pre-fill health calculators.
               </p>
             </div>

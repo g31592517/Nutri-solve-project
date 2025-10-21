@@ -76,7 +76,7 @@ const EnhancedWeeklyMealPlanner = () => {
 
   const handlePlanGenerated = (plan: WeeklyMealPlan) => {
     setMealPlan(plan);
-    toast.success("Meal plan generated! 🎉");
+    toast.success("Meal plan generated!");
   };
 
 

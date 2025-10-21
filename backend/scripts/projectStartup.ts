@@ -26,20 +26,20 @@ async function ensureModel(): Promise<void> {
     const modelNames = models.models?.map(m => m.name) || [];
     
     if (!modelNames.includes(MODEL)) {
-      console.log(`[Start] 🚀 Pulling model: ${MODEL}`);
+      console.log(`[Start] Pulling model: ${MODEL}`);
       await ollama.pull({ model: MODEL });
-      console.log(`[Start] ✅ Model ${MODEL} ready`);
+      console.log(`[Start] Model ${MODEL} ready`);
     } else {
-      console.log(`[Start] ✅ Model already available: ${MODEL}`);
+      console.log(`[Start] Model already available: ${MODEL}`);
     }
   } catch (error) {
-    console.warn(`[Start] ⚠️  Failed to pull ${MODEL}, trying fallback: ${FALLBACK_MODEL}`);
+    console.warn(`[Start] Failed to pull ${MODEL}, trying fallback: ${FALLBACK_MODEL}`);
     try {
       await ollama.pull({ model: FALLBACK_MODEL });
-      console.log(`[Start] ✅ Fallback model ${FALLBACK_MODEL} ready`);
-      console.log(`[Start] 💡 Update your .env with: OLLAMA_MODEL=${FALLBACK_MODEL}`);
+      console.log(`[Start] Fallback model ${FALLBACK_MODEL} ready`);
+      console.log(`[Start] Update your .env with: OLLAMA_MODEL=${FALLBACK_MODEL}`);
     } catch (fallbackError) {
-      console.error(`[Start] ❌ Failed to pull any model:`, fallbackError);
+      console.error(`[Start] Failed to pull any model:`, fallbackError);
     }
   }
 }
@@ -100,7 +100,7 @@ async function downloadDataset() {
       await execAsync('npm run download-data');
       console.log('[Start] Dataset ready');
     } catch (error) {
-      console.warn('[Start] ⚠️  Dataset download failed, will use minimal dataset');
+      console.warn('[Start] Dataset download failed, will use minimal dataset');
     }
   }
 }

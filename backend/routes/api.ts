@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { chat, getCacheStats, clearCaches } from '../controllers/chatController.js';
+import { chat, getCacheStats, clearCaches } from '../controllers/aiChatHandler.js';
 import {
   getPosts,
   createPost,
   likePost,
   addComment,
   deletePost,
-} from '../controllers/communityController.js';
+} from '../controllers/communityHandler.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = Router();

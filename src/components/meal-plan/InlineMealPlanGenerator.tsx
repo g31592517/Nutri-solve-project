@@ -133,7 +133,7 @@ export const InlineMealPlanGenerator = ({
     onDayGenerated(dayPlan);
     setCompletedDays(prev => [...prev, dayName]);
     setProgress(Math.round(((dayIndex + 1) / days.length) * 100));
-    setGenerationStatus(`${dayName} completed! 🎉`);
+    setGenerationStatus(`${dayName} completed!`);
     
     return dayPlan;
   };
@@ -194,8 +194,8 @@ export const InlineMealPlanGenerator = ({
       console.log(`[MealPlan] Complete plan generated in ${totalDuration}ms`);
       
       onPlanGenerated(finalMealPlan);
-      setGenerationStatus('Plan completed! 🎉');
-      toast.success(`Meal plan generated in ${Math.round(totalDuration/1000)}s! 🎉`);
+      setGenerationStatus('Plan completed!');
+      toast.success(`Meal plan generated in ${Math.round(totalDuration/1000)}s!`);
       
     } catch (error: any) {
       console.error('Generation error:', error);

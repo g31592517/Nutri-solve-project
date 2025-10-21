@@ -21,7 +21,7 @@ import recommendationRoutes from './routes/recommendations.js';
 import mealPlanRoutes from './routes/mealPlan.js';
 
 // Import chat controller to initialize data
-import { loadUSDAData } from './controllers/chatController.js';
+import { loadUSDAData } from './controllers/aiChatHandler.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;

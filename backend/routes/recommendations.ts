@@ -9,7 +9,7 @@ import {
   getRecommendationsWithChat,
   checkMLStatus,
   trainMLModel,
-} from '../controllers/recController.js';
+} from '../controllers/recommendationHandler.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();

@@ -37,14 +37,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const verifyToken = async (tokenToVerify: string) => {
     try {
-      console.log('[Auth] 🔍 Verifying stored token for auto-login...');
+      console.log('[Auth] Verifying stored token for auto-login...');
       const response = await authApi.verifyToken();
       if (response.success && response.user) {
         setUser(response.user);
-        console.log('[Auth] ✅ Auto-login successful:', response.user.username);
+        console.log('[Auth] Auto-login successful:', response.user.username);
       } else {
         // Invalid token, clear it
-        console.log('[Auth] ❌ Token invalid, clearing storage');
+        console.log('[Auth] Token invalid, clearing storage');
         localStorage.removeItem('authToken');
         setToken(null);
         setUser(null);
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(response.token);
         setUser(response.user);
         localStorage.setItem('authToken', response.token);
-        console.log('[Auth] ✅ Login successful, token persisted for auto-login');
+        console.log('[Auth] Login successful, token persisted for auto-login');
       } else {
         throw new Error(response.error || 'Login failed');
       }
@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(response.user);
         // Persist token for auto-login across browser sessions
         localStorage.setItem('authToken', response.token);
-        console.log('[Auth] ✅ Auto-login enabled - token saved to localStorage');
+        console.log('[Auth] Auto-login enabled - token saved to localStorage');
       } else {
         throw new Error(response.error || 'Signup failed');
       }

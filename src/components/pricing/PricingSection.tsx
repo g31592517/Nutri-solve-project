@@ -144,12 +144,12 @@ export const PricingSection = ({ onOpenAuth }: PricingSectionProps) => {
                     {plan.name}
                   </CardTitle>
                   <div className="mt-4">
-                    <span className="text-5xl font-bold">${displayPrice}</span>
+                    <span className="text-5xl font-bold">ksh.{displayPrice}</span>
                     <span className="text-muted-foreground">/{plan.period}</span>
                   </div>
                   {billingPeriod === "yearly" && plan.yearlyPrice && (
                     <p className="text-sm text-muted-foreground mt-2">
-                      ${plan.yearlyPrice} billed annually
+                      ksh.{plan.yearlyPrice} billed annually
                     </p>
                   )}
                 </CardHeader>

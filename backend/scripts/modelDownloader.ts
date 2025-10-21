@@ -32,10 +32,10 @@ async function pullModel(modelName: string) {
     const { stdout, stderr } = await execPromise(`ollama pull ${modelName}`);
     console.log(stdout);
     if (stderr) console.error(stderr);
-    console.log(`[Model] ✅ ${modelName} pulled successfully!`);
+    console.log(`[Model] ${modelName} pulled successfully!`);
     return true;
   } catch (error: any) {
-    console.error(`[Model] ❌ Failed to pull ${modelName}:`, error.message);
+    console.error(`[Model] Failed to pull ${modelName}:`, error.message);
     return false;
   }
 }
@@ -47,17 +47,17 @@ async function main() {
   // Check if Ollama is installed
   const ollamaInstalled = await checkOllamaInstalled();
   if (!ollamaInstalled) {
-    console.error('[Model] ❌ Ollama is not installed!');
+    console.error('[Model] Ollama is not installed!');
     console.error('[Model] Please install Ollama from: https://ollama.ai/');
     process.exit(1);
   }
   
-  console.log('[Model] ✅ Ollama is installed');
+  console.log('[Model] Ollama is installed');
   
   // Check if model is already present
   const hasModel = await checkModel(MODEL);
   if (hasModel) {
-    console.log(`[Model] ✅ ${MODEL} is already available`);
+    console.log(`[Model] ${MODEL} is already available`);
     console.log('[Model] Model size: ~2GB (phi3:mini) or ~1.5GB (llama3.2:3b-q4_0)');
     process.exit(0);
   }
@@ -71,7 +71,7 @@ async function main() {
     const fallbackSuccess = await pullModel(FALLBACK_MODEL);
     
     if (!fallbackSuccess) {
-      console.error('[Model] ❌ Failed to pull any model');
+      console.error('[Model] Failed to pull any model');
       console.error('[Model] Please check your internet connection and try again');
       process.exit(1);
     }
@@ -79,7 +79,7 @@ async function main() {
     console.log(`[Model] Update your .env with: OLLAMA_MODEL=${FALLBACK_MODEL}`);
   }
   
-  console.log('[Model] ✅ Setup complete!');
+  console.log('[Model] Setup complete!');
   console.log('[Model] You can now start the server with: npm start');
 }
 

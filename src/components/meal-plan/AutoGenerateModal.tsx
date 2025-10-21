@@ -80,7 +80,7 @@ export const AutoGenerateModal = ({ open, onOpenChange, onPlanGenerated }: AutoG
           } else if (data.type === 'day_complete') {
             setCompletedDays(prev => [...prev, data.day]);
             setGenerationProgress(data.progress);
-            setGenerationStatus(`${data.day.day} completed! 🎉`);
+            setGenerationStatus(`${data.day.day} completed!`);
             
             // Log real timing for each day
             console.log(`[Real Generation] ${data.day.day} completed with ${data.day.meals.length} meals from Gemma`);
@@ -88,10 +88,10 @@ export const AutoGenerateModal = ({ open, onOpenChange, onPlanGenerated }: AutoG
         },
         // onComplete callback
         (mealPlan) => {
-          setGenerationStatus('Plan completed! 🎉');
+          setGenerationStatus('Plan completed!');
           setGenerationProgress(100);
           onPlanGenerated(mealPlan);
-          toast.success("Real meal plan generated successfully! 🎉");
+          toast.success("Real meal plan generated successfully!");
           
           // Reset and close after a brief delay
           setTimeout(() => {
