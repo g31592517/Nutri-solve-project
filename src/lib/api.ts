@@ -22,18 +22,33 @@ async function fetchApi<T = any>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  // Add timeout for all requests (10 minutes for AI operations)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutes
 
-  const data = await response.json();
+  try {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    throw new Error(data.error || 'API request failed');
+    clearTimeout(timeoutId);
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'API request failed');
+    }
+
+    return data;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout after 10 minutes - please try again');
+    }
+    throw error;
   }
-
-  return data;
 }
 
 // Auth API
@@ -64,8 +79,87 @@ export const chatApi = {
   sendMessage: async (message: string) => {
     return fetchApi('/chat', {
       method: 'POST',
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, stream: false }),
     });
+  },
+  
+  sendMessageStream: async (message: string, onChunk: (chunk: string) => void, onComplete: (fullResponse: string) => void) => {
+    try {
+      // Add timeout for streaming requests (10 minutes for AI streaming)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutes
+
+      const token = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_URL}/chat`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ message, stream: true }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body reader');
+      }
+
+      let fullResponse = '';
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6).trim();
+            console.log('[Frontend] Received chunk:', data);
+            
+            if (data === '[DONE]') {
+              console.log(`[Frontend] Stream complete: ${fullResponse.length} chars`);
+              onComplete(fullResponse);
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.content) {
+                fullResponse += parsed.content;
+                onChunk(parsed.content);
+              }
+            } catch (error) {
+              // Skip invalid JSON chunks
+            }
+          }
+        }
+      }
+
+      onComplete(fullResponse);
+    } catch (error: any) {
+      console.error('[Frontend] Streaming error:', error);
+      if (error.name === 'AbortError') {
+        onComplete('Request timeout after 10 minutes - please try again.');
+      } else {
+        onComplete('Sorry, there was an error with the response.');
+      }
+    }
   },
 };
 
@@ -76,6 +170,89 @@ export const mealPlanApi = {
       method: 'POST',
       body: JSON.stringify({ profile, budget, preferences, varietyMode }),
     });
+  },
+
+  generatePlanStream: async (
+    profile: any, 
+    budget: string, 
+    preferences: string, 
+    varietyMode: string,
+    onProgress: (data: any) => void,
+    onComplete: (mealPlan: any) => void,
+    onError: (error: string) => void
+  ) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_URL}/meal-plan/generate-stream`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ profile, budget, preferences, varietyMode }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body reader');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        
+        // Keep the last incomplete line in the buffer
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6).trim();
+            
+            if (data === '[DONE]') {
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              
+              if (parsed.type === 'status') {
+                onProgress(parsed);
+              } else if (parsed.type === 'day_complete') {
+                onProgress(parsed);
+              } else if (parsed.type === 'complete') {
+                onComplete(parsed.mealPlan);
+                return;
+              } else if (parsed.type === 'error') {
+                onError(parsed.message);
+                return;
+              }
+            } catch (error) {
+              // Skip invalid JSON chunks
+              console.warn('Failed to parse streaming data:', data);
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('[Frontend] Meal plan streaming error:', error);
+      onError(error.message || 'Failed to generate meal plan');
+    }
   },
 
   swapMeal: async (mealName: string, mealType: string, day: string, profile: any, budget: string, preferences: string) => {

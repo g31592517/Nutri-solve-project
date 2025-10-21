@@ -60,6 +60,13 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Set server timeout for long-running AI operations (10 minutes)
+app.use((req, res, next) => {
+  req.setTimeout(600000); // 10 minutes
+  res.setTimeout(600000); // 10 minutes
+  next();
+});
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import {
   generateMealPlan,
+  generateMealPlanStream,
   swapMeal,
   extractPreferences,
   ocrImage,
@@ -46,6 +47,9 @@ const upload = multer({
 
 // POST /api/meal-plan/generate - Generate full 7-day meal plan
 router.post('/generate', generateMealPlan);
+
+// POST /api/meal-plan/generate-stream - Generate meal plan with streaming
+router.post('/generate-stream', generateMealPlanStream);
 
 // POST /api/meal-plan/swap - Get alternative meal suggestions
 router.post('/swap', swapMeal);

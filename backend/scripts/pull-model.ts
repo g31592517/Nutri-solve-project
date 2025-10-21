@@ -4,7 +4,7 @@ import { promisify } from 'util';
 const execPromise = promisify(exec);
 
 const MODEL = process.env.OLLAMA_MODEL || 'phi3:mini';
-const FALLBACK_MODEL = 'llama3.2:3b-q4_0';
+const FALLBACK_MODEL = 'phi3:mini';
 
 async function checkOllamaInstalled(): Promise<boolean> {
   try {

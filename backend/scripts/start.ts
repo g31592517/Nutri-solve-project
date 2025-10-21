@@ -1,4 +1,7 @@
-import { spawn, exec } from 'child_process';
+import { spawn } from 'child_process';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { Ollama } from 'ollama';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,26 +10,44 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const execAsync = promisify(exec);
+const ollama = new Ollama();
+
+// Use phi3:mini as the default model for conversational responses
 const MODEL = process.env.OLLAMA_MODEL || 'phi3:mini';
+const FALLBACK_MODEL = 'phi3:mini';
 const HOST = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
 const ROOT_DIR = path.join(__dirname, '../..');
 
-function execPromise(command: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(stdout);
-      }
-    });
-  });
+// Auto-pull phi3:mini model if not available
+async function ensureModel(): Promise<void> {
+  try {
+    const models = await ollama.list();
+    const modelNames = models.models?.map(m => m.name) || [];
+    
+    if (!modelNames.includes(MODEL)) {
+      console.log(`[Start] 🚀 Pulling model: ${MODEL}`);
+      await ollama.pull({ model: MODEL });
+      console.log(`[Start] ✅ Model ${MODEL} ready`);
+    } else {
+      console.log(`[Start] ✅ Model already available: ${MODEL}`);
+    }
+  } catch (error) {
+    console.warn(`[Start] ⚠️  Failed to pull ${MODEL}, trying fallback: ${FALLBACK_MODEL}`);
+    try {
+      await ollama.pull({ model: FALLBACK_MODEL });
+      console.log(`[Start] ✅ Fallback model ${FALLBACK_MODEL} ready`);
+      console.log(`[Start] 💡 Update your .env with: OLLAMA_MODEL=${FALLBACK_MODEL}`);
+    } catch (fallbackError) {
+      console.error(`[Start] ❌ Failed to pull any model:`, fallbackError);
+    }
+  }
 }
 
 async function checkOllamaRunning(): Promise<boolean> {
   try {
-    const result = await execPromise('pgrep -f "ollama serve"');
-    return result.trim().length > 0;
+    const result = await execAsync('pgrep -f "ollama serve"');
+    return result.stdout.trim().length > 0;
   } catch {
     return false;
   }
@@ -51,23 +72,16 @@ async function startOllama() {
 
 async function checkModel(): Promise<boolean> {
   try {
-    const result = await execPromise('ollama list');
-    return result.includes(MODEL);
+    const result = await execAsync('ollama list');
+    return result.stdout.includes(MODEL);
   } catch {
     return false;
   }
 }
 
 async function pullModel() {
-  const hasModel = await checkModel();
-  
-  if (hasModel) {
-    console.log(`[Start] Model already available: ${MODEL}`);
-  } else {
-    console.log(`[Start] Pulling model ${MODEL} (one-time operation)...`);
-    await execPromise(`ollama pull ${MODEL}`);
-    console.log(`[Start] Model ${MODEL} ready`);
-  }
+  // Use the model pulling function
+  await ensureModel();
 }
 
 async function checkDataset(): Promise<boolean> {
@@ -82,8 +96,12 @@ async function downloadDataset() {
     console.log('[Start] Dataset already present');
   } else {
     console.log('[Start] Downloading USDA dataset (one-time operation)...');
-    await execPromise('npm run download-data');
-    console.log('[Start] Dataset ready');
+    try {
+      await execAsync('npm run download-data');
+      console.log('[Start] Dataset ready');
+    } catch (error) {
+      console.warn('[Start] ⚠️  Dataset download failed, will use minimal dataset');
+    }
   }
 }
 

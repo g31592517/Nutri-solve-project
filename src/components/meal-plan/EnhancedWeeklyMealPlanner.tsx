@@ -79,6 +79,7 @@ const EnhancedWeeklyMealPlanner = () => {
     toast.success("Meal plan generated! 🎉");
   };
 
+
   const handlePreferencesExtracted = (preferences: ExtractedPreferences) => {
     // In a real app, update user profile with extracted preferences
     toast.success("Preferences applied! Use them in Auto-Generate.");
@@ -323,8 +324,8 @@ const EnhancedWeeklyMealPlanner = () => {
 
                       {mode === 'smart' ? (
                         <Button onClick={() => setAutoGenerateOpen(true)}>
-                          <Plus className="mr-2 h-4 w-4" />
-                          Auto-Generate
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Auto-Generate Plan
                         </Button>
                       ) : (
                         <Button onClick={() => setManualModeOpen(true)} variant="outline">
@@ -337,20 +338,13 @@ const EnhancedWeeklyMealPlanner = () => {
                 </CardHeader>
 
                 <CardContent className="p-6">
-                  {loading && (
-                    <div className="text-center py-20">
-                      <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-primary" />
-                      <p className="text-muted-foreground">Loading meal plan...</p>
-                    </div>
-                  )}
-
-                  {!loading && !mealPlan && (
+                  {!mealPlan && (
                     <div className="text-center py-20">
                       <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                       <h3 className="font-semibold text-xl mb-2">No Meal Plan Yet</h3>
                       <p className="text-muted-foreground mb-6">
                         {mode === 'smart'
-                          ? 'Click "Auto-Generate" to create an AI-powered meal plan'
+                          ? 'Click "Auto-Generate Plan" to create an AI-powered meal plan'
                           : 'Upload preferences or drag recipes to build your plan manually'}
                       </p>
                     </div>
