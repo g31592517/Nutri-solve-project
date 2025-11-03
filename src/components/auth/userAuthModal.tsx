@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SignInForm } from "./SignInForm";
-import { SignUpForm } from "./SignUpForm";
-import { ForgotPasswordForm } from "./ForgotPasswordForm";
+import { SignInForm } from "./userSignInForm";
+import { SignUpForm } from "./userSignUpForm";
+import { ForgotPasswordForm } from "./passwordResetForm";
 
 interface AuthModalProps {
   isOpen: boolean;

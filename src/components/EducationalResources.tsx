@@ -8,7 +8,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { CalculatorModal } from "./CalculatorModal";
+import { CalculatorModal } from "./nutritionCalculatorModal";
 import { useGamification } from "@/contexts/GamificationContext";
 import { useAuth } from "@/contexts/AuthContext";
 
