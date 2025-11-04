@@ -1,4 +1,5 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Use relative URL in development to leverage Vite proxy, absolute URL in production
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'http://localhost:5000/api');
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -60,10 +61,10 @@ export const authApi = {
     });
   },
 
-  login: async (email: string, password: string) => {
+  login: async (identifier: string, password: string) => {
     return fetchApi('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
     });
   },
 

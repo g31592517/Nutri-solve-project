@@ -9,8 +9,8 @@ import {
   getRecommendationsWithChat,
   checkMLStatus,
   trainMLModel,
-} from '../controllers/recommendationHandler.js';
-import { authenticateToken } from '../middleware/auth.js';
+} from '../controllers/recommendationHandler';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Calendar, Plus, Loader2, ShoppingCart, Sparkles, Upload, RefreshCw } from "lucide-react";
+import { Calendar, Plus, Loader2, ShoppingCart, Sparkles, Upload, RefreshCw, CalendarDays } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { AutoGenerateModal } from "./AutoGenerateModal";
 import { ManualModeModal } from "./ManualModeModal";
@@ -12,6 +13,8 @@ import { AIInsightCard } from "./AIInsightCard";
 import { AIInsightModal } from "./AIInsightModal";
 import { ShoppingListModal } from "./ShoppingListModal";
 import { MealSwapModal } from "./MealSwapModal";
+import { DayColumn } from "./DayColumn";
+import { useMealPlanStreaming } from "@/hooks/useMealPlanStreaming";
 import { WeeklyMealPlan, Meal, DayPlan, AIInsight, ExtractedPreferences, MealSwapSuggestion } from "@/types/meal-plan";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable } from "@dnd-kit/core";
 import { toast } from "sonner";
@@ -23,6 +26,9 @@ const EnhancedWeeklyMealPlanner = () => {
   const [loading, setLoading] = useState(false);
   const [currentInsight, setCurrentInsight] = useState<AIInsight | null>(null);
   const [insightVisible, setInsightVisible] = useState(false);
+
+  // Progressive rendering with useMealPlanStreaming hook
+  const { state, processStreamingResponse, simulateStreaming, reset } = useMealPlanStreaming();
 
   // Modal states
   const [autoGenerateOpen, setAutoGenerateOpen] = useState(false);
@@ -77,6 +83,35 @@ const EnhancedWeeklyMealPlanner = () => {
   const handlePlanGenerated = (plan: WeeklyMealPlan) => {
     setMealPlan(plan);
     toast.success("Meal plan generated!");
+  };
+
+  const handleStartGeneration = () => {
+    // Open modal to collect preferences
+    setAutoGenerateOpen(true);
+  };
+
+  const handleGenerateWithPreferences = async (preferences: any) => {
+    // Call real Gemma backend with progressive rendering
+    try {
+      console.log('Starting meal plan generation with preferences:', preferences);
+      
+      // Call the real streaming endpoint
+      await processStreamingResponse('http://localhost:5000/api/meal-plan/generate-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile: preferences.profile,
+          budget: preferences.budget,
+          preferences: preferences.preferences,
+          varietyMode: preferences.varietyMode,
+        }),
+      });
+      
+      toast.success('Meal plan generated successfully!');
+    } catch (error) {
+      console.error('Generation error:', error);
+      toast.error('Failed to generate meal plan');
+    }
   };
 
 
@@ -323,9 +358,18 @@ const EnhancedWeeklyMealPlanner = () => {
                       </div>
 
                       {mode === 'smart' ? (
-                        <Button onClick={() => setAutoGenerateOpen(true)}>
-                          <Sparkles className="mr-2 h-4 w-4" />
-                          Auto-Generate Plan
+                        <Button onClick={handleStartGeneration} disabled={state.isGenerating}>
+                          {state.isGenerating ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Auto-Generate Plan
+                            </>
+                          )}
                         </Button>
                       ) : (
                         <Button onClick={() => setManualModeOpen(true)} variant="outline">
@@ -338,7 +382,8 @@ const EnhancedWeeklyMealPlanner = () => {
                 </CardHeader>
 
                 <CardContent className="p-6">
-                  {!mealPlan && (
+                  {/* Empty State */}
+                  {state.completedDays.length === 0 && !state.isGenerating && (
                     <div className="text-center py-20">
                       <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                       <h3 className="font-semibold text-xl mb-2">No Meal Plan Yet</h3>
@@ -350,7 +395,135 @@ const EnhancedWeeklyMealPlanner = () => {
                     </div>
                   )}
 
-                  {!loading && mealPlan && (
+                  {/* Progressive Rendering Section */}
+                  {state.completedDays.length > 0 && (
+                    <div>
+                      {/* Generating Indicator */}
+                      {state.isGenerating && (
+                        <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground animate-pulse">
+                          <div className="w-2 h-2 bg-primary rounded-full animate-ping" />
+                          <span>
+                            Generating {state.completedDays[state.currentDayIndex]?.day || 'meals'}...
+                            ({state.completedDays[state.currentDayIndex]?.meals.length || 0}/3 meals)
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Error Display */}
+                      {state.error && (
+                        <div className="flex items-center gap-2 mb-4 text-sm text-destructive">
+                          <span>⚠️ {state.error}</span>
+                          <Button variant="ghost" size="sm" onClick={reset}>
+                            Retry
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Dynamic Layout Based on Revealed Days */}
+                      {state.completedDays.length >= 3 ? (
+                        // Wednesday+: Horizontal Scroll
+                        <ScrollArea className="w-full whitespace-nowrap">
+                          <div className="flex gap-4 pb-4">
+                            {state.completedDays.map((day, dayIndex) => {
+                              const isCurrentDay = dayIndex === state.currentDayIndex && state.isGenerating;
+                              const totalMeals = 3;
+                              
+                              return (
+                                <DayColumn
+                                  key={day.day}
+                                  day={day.day}
+                                  date={day.date}
+                                  meals={day.meals}
+                                  totalMeals={totalMeals}
+                                  isGenerating={isCurrentDay}
+                                />
+                              );
+                            })}
+                          </div>
+                          <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
+                      ) : state.completedDays.length === 2 ? (
+                        // Tuesday: Two Columns
+                        <div className="grid grid-cols-2 gap-4">
+                          {state.completedDays.map((day, dayIndex) => {
+                            const isCurrentDay = dayIndex === state.currentDayIndex && state.isGenerating;
+                            const totalMeals = 3;
+                            
+                            return (
+                              <DayColumn
+                                key={day.day}
+                                day={day.day}
+                                date={day.date}
+                                meals={day.meals}
+                                totalMeals={totalMeals}
+                                isGenerating={isCurrentDay}
+                              />
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        // Monday: Full Width
+                        <div className="grid-cols-1">
+                          {state.completedDays.map((day, dayIndex) => {
+                            const isCurrentDay = dayIndex === state.currentDayIndex && state.isGenerating;
+                            const totalMeals = 3;
+                            
+                            return (
+                              <DayColumn
+                                key={day.day}
+                                day={day.day}
+                                date={day.date}
+                                meals={day.meals}
+                                totalMeals={totalMeals}
+                                isGenerating={isCurrentDay}
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Weekly Summary */}
+                      {!state.isGenerating && state.completedDays.length > 0 && (
+                        <div className="mt-6 p-4 bg-secondary/50 rounded-lg animate-fade-in">
+                          <div className="flex items-center justify-between flex-wrap gap-4">
+                            <div>
+                              <h4 className="font-semibold text-foreground mb-1">Weekly Summary</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Complete nutrition plan for optimal health and performance
+                              </p>
+                            </div>
+                            <div className="flex gap-6">
+                              <div className="text-center">
+                                <p className="text-2xl font-bold text-primary">
+                                  {state.completedDays.reduce((sum, day) => 
+                                    sum + day.meals.reduce((mealSum, meal) => mealSum + meal.calories, 0), 0
+                                  )}
+                                </p>
+                                <p className="text-xs text-muted-foreground">Total Calories</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-2xl font-bold text-primary">
+                                  {state.completedDays.reduce((sum, day) => 
+                                    sum + day.meals.reduce((mealSum, meal) => mealSum + meal.protein, 0), 0
+                                  )}g
+                                </p>
+                                <p className="text-xs text-muted-foreground">Total Protein</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-2xl font-bold text-primary">
+                                  {state.completedDays.reduce((sum, day) => sum + day.meals.length, 0)}
+                                </p>
+                                <p className="text-xs text-muted-foreground">Meals Planned</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Old Tab-based view for manual mode */}
+                  {!loading && mealPlan && mode === 'manual' && (
                     <Tabs defaultValue="monday" className="w-full">
                       <TabsList className="grid grid-cols-7 w-full mb-6">
                         {days.map((day) => (
@@ -441,6 +614,7 @@ const EnhancedWeeklyMealPlanner = () => {
           open={autoGenerateOpen}
           onOpenChange={setAutoGenerateOpen}
           onPlanGenerated={handlePlanGenerated}
+          onStartGeneration={handleGenerateWithPreferences}
         />
 
         <ManualModeModal

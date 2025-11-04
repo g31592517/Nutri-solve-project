@@ -1,13 +1,13 @@
 import { Router } from 'express';
-import { chat, getCacheStats, clearCaches } from '../controllers/aiChatHandler.js';
+import { chat, getCacheStats, clearCaches } from '../controllers/aiChatHandler';
 import {
   getPosts,
   createPost,
   likePost,
   addComment,
   deletePost,
-} from '../controllers/communityHandler.js';
-import { authenticate } from '../middleware/auth.js';
+} from '../controllers/communityHandler';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,18 +13,19 @@ interface SignInFormProps {
 }
 
 export const SignInForm = ({ onSuccess, onForgotPassword }: SignInFormProps) => {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [useEmail, setUseEmail] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await login(email, password);
+      await login(identifier, password);
 
       toast({
         title: "Success!",
@@ -83,21 +84,51 @@ export const SignInForm = ({ onSuccess, onForgotPassword }: SignInFormProps) => 
           <Separator />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
+          <span className="bg-background px-2 text-muted-foreground">
+            {useEmail ? "Or use username" : "Or continue with email"}
+          </span>
         </div>
       </div>
 
-      <form onSubmit={handleEmailSignIn} className="space-y-4">
+      {!useEmail && (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={() => setUseEmail(true)}
+        >
+          <Mail className="mr-2 h-4 w-4" />
+          Continue with Email
+        </Button>
+      )}
+
+      {useEmail && (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={() => setUseEmail(false)}
+        >
+          <User className="mr-2 h-4 w-4" />
+          Use Username Instead
+        </Button>
+      )}
+
+      <form onSubmit={handleSignIn} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="identifier">{useEmail ? "Email" : "Username"}</Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            {useEmail ? (
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            ) : (
+              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            )}
             <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="identifier"
+              type={useEmail ? "email" : "text"}
+              placeholder={useEmail ? "you@example.com" : "Mary"}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               className="pl-10"
               required
             />

@@ -269,49 +269,121 @@ Return ONLY valid JSON:
         console.log(`[MealPlan] Calling Gemma for ${day}...`);
         const startTime = Date.now();
         
-        // Add timeout wrapper for Ollama call
-        const response = await Promise.race([
-          ollama.chat({
-            model: getMealPlanModel(),
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: dayPrompt },
-            ],
-            options: { 
-              num_predict: 400, // Reduced for faster response
-              temperature: 0.3,
-              num_ctx: 1024, // Reduced context
-              top_k: 20,
-              top_p: 0.8,
-              repeat_penalty: 1.1,
-              seed: -1,
-            },
-          }),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Ollama timeout')), 30000) // 30 second timeout
-          )
-        ]);
+        // Generate each meal individually for true progressive rendering
+        const mealTypes = ['breakfast', 'lunch', 'dinner'];
+        const dayMeals: any[] = [];
+        
+        for (const mealType of mealTypes) {
+          console.log(`[MealPlan] 🤖 Calling REAL Gemma AI for ${day} ${mealType}...`);
+          
+          const mealPrompt = `Create ${mealType} for ${day}: ${goal}, ${restrictions.length > 0 ? restrictions.join('/') : 'no restrictions'}, ${budgetText}.
+
+Return ONLY valid JSON (no markdown, no explanation):
+{
+  "type": "${mealType}",
+  "name": "Specific meal name",
+  "calories": 300,
+  "protein": 15,
+  "carbs": 35,
+  "fat": 10,
+  "ingredients": ["ingredient1", "ingredient2", "ingredient3"]
+}`;
+
+          let meal;
+          try {
+            const gemmaStartTime = Date.now();
+            const response = await Promise.race([
+              ollama.chat({
+                model: getMealPlanModel(),
+                messages: [
+                  { role: 'system', content: 'You are a nutritionist. Return ONLY valid JSON, no markdown, no explanation.' },
+                  { role: 'user', content: mealPrompt },
+                ],
+                options: { 
+                  num_predict: 120,
+                  temperature: 0.4,
+                  num_ctx: 512,
+                  top_k: 20,
+                  top_p: 0.9,
+                },
+              }),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Gemma timeout after 60s')), 60000)
+              )
+            ]);
+            
+            const gemmaTime = Date.now() - gemmaStartTime;
+            const content = (response as any)?.message?.content || '';
+            console.log(`[MealPlan] ✅ Gemma responded in ${gemmaTime}ms`);
+            console.log(`[MealPlan] 📝 Raw Gemma output: ${content.substring(0, 200)}...`);
+            
+            // Parse meal from Gemma response
+            try {
+              // Try to extract JSON from markdown code blocks
+              const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+              const jsonString = jsonMatch ? jsonMatch[1] : content;
+              meal = JSON.parse(jsonString.trim());
+              console.log(`[MealPlan] ✅ Successfully parsed Gemma JSON for ${day} ${mealType}`);
+            } catch (parseError) {
+              console.log(`[MealPlan] ⚠️ Failed to parse Gemma response, using fallback`);
+              console.log(`[MealPlan] Parse error: ${parseError}`);
+              const fallbackDay = generateRealisticDayPlan(day, profile, preferences);
+              meal = fallbackDay.meals.find((m: any) => m.type === mealType) || fallbackDay.meals[0];
+            }
+            
+          } catch (gemmaError: any) {
+            console.log(`[MealPlan] ❌ Gemma error: ${gemmaError.message}`);
+            console.log(`[MealPlan] Using fallback for ${day} ${mealType}`);
+            const fallbackDay = generateRealisticDayPlan(day, profile, preferences);
+            meal = fallbackDay.meals.find((m: any) => m.type === mealType) || fallbackDay.meals[0];
+          }
+          
+          dayMeals.push(meal);
+          
+          // Send meal immediately
+          res.write(`data: ${JSON.stringify({ 
+            type: 'meal', 
+            meal: meal
+          })}\n\n`);
+          
+          console.log(`[MealPlan] 📤 Sent ${day} ${mealType}: ${meal.name}`);
+        }
         
         const duration = Date.now() - startTime;
-        console.log(`[MealPlan] Gemma responded for ${day} in ${duration}ms`);
+        console.log(`[MealPlan] Completed ${day} in ${duration}ms`);
 
-        const content = (response as any)?.message?.content || '';
+        // Calculate day totals
+        const dayTotals = dayMeals.reduce(
+          (acc: any, meal: any) => ({
+            totalCalories: acc.totalCalories + (meal.calories || 0),
+            totalProtein: acc.totalProtein + (meal.protein || 0),
+            totalCarbs: acc.totalCarbs + (meal.carbs || 0),
+            totalFat: acc.totalFat + (meal.fat || 0),
+          }),
+          { totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 }
+        );
+
+        const completeDayPlan = {
+          day: day,
+          meals: dayMeals,
+          ...dayTotals,
+        };
+
+        completedDays.push(completeDayPlan);
+
+        // Send day complete signal
+        res.write(`data: ${JSON.stringify({ 
+          type: 'day_complete',
+          progress: Math.round(((i + 1) / days.length) * 100)
+        })}\n\n`);
+
+      } catch (error: any) {
+        console.error(`[MealPlan] Error generating ${day}:`, error);
         
-        // Extract JSON from response
-        let dayPlan;
-        try {
-          const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-          const jsonString = jsonMatch ? jsonMatch[1] : content;
-          dayPlan = JSON.parse(jsonString.trim());
-        } catch (parseError) {
-          console.error(`[MealPlan] Failed to parse JSON for ${day}:`, parseError);
-          console.error(`[MealPlan] Raw response: ${content}`);
-          
-          // Generate realistic response based on user profile for demo
-          console.log(`[MealPlan] Generating realistic ${day} plan based on profile...`);
-          dayPlan = generateRealisticDayPlan(day, profile, preferences);
-        }
-
+        // Use fallback generation on timeout or error
+        console.log(`[MealPlan] Using fallback generation for ${day}...`);
+        const dayPlan = generateRealisticDayPlan(day, profile, preferences);
+        
         // Calculate day totals
         const dayTotals = dayPlan.meals.reduce(
           (acc: any, meal: any) => ({
@@ -328,20 +400,23 @@ Return ONLY valid JSON:
           ...dayTotals,
         };
 
+        // Send each meal individually for progressive rendering (fallback case)
+        for (const meal of dayPlan.meals) {
+          res.write(`data: ${JSON.stringify({ 
+            type: 'meal', 
+            meal: meal
+          })}\n\n`);
+          
+          // Small delay between meals for visual effect
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+
         completedDays.push(completeDayPlan);
 
-        // Send the completed day
+        // Send day complete signal
         res.write(`data: ${JSON.stringify({ 
-          type: 'day_complete', 
-          day: completeDayPlan,
+          type: 'day_complete',
           progress: Math.round(((i + 1) / days.length) * 100)
-        })}\n\n`);
-
-      } catch (error: any) {
-        console.error(`[MealPlan] Error generating ${day}:`, error);
-        res.write(`data: ${JSON.stringify({ 
-          type: 'error', 
-          message: `Failed to generate ${day}: ${error.message}` 
         })}\n\n`);
       }
     }
@@ -668,7 +743,7 @@ Output format (JSON only):
     await warmUpModel();
     
     const response = await ollama.chat({
-      model: process.env.OLLAMA_MODEL || 'phi3:mini',
+      model: getMealPlanModel(),
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -736,7 +811,7 @@ Example:
     await warmUpModel();
     
     const response = await ollama.chat({
-      model: process.env.OLLAMA_MODEL || 'phi3:mini',
+      model: getMealPlanModel(),
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -807,7 +882,7 @@ Output JSON format:
     await warmUpModel();
     
     const response = await ollama.chat({
-      model: process.env.OLLAMA_MODEL || 'phi3:mini',
+      model: getMealPlanModel(),
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -901,7 +976,7 @@ Provide 3 specific suggestions to optimize this plan. Output JSON:
     await warmUpModel();
     
     const response = await ollama.chat({
-      model: process.env.OLLAMA_MODEL || 'phi3:mini',
+      model: getMealPlanModel(),
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -978,7 +1053,7 @@ Output JSON:
     await warmUpModel();
     
     const response = await ollama.chat({
-      model: process.env.OLLAMA_MODEL || 'phi3:mini',
+      model: getMealPlanModel(),
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },

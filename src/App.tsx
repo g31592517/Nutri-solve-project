@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { UserProfileProvider } from "@/contexts/UserProfileContext";
 import { GamificationProvider } from "@/contexts/GamificationContext";
 import Index from "./pages/Index";
+import WeeklyPlanDemo from "./pages/WeeklyPlanDemo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Index />} />
+                <Route path="/weekly-plan-demo" element={<WeeklyPlanDemo />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

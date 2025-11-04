@@ -60,19 +60,21 @@ export const SignUpForm = ({ onSuccess }: SignUpFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="signup-email">Email</Label>
+        <Label htmlFor="signup-email">Email (Optional)</Label>
         <div className="relative">
           <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
             id="signup-email"
             type="email"
-            placeholder="you@example.com"
+            placeholder="you@example.com (optional)"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="pl-10"
-            required
           />
         </div>
+        <p className="text-xs text-muted-foreground">
+          Email is optional but recommended for account recovery
+        </p>
       </div>
 
       <div className="space-y-2">

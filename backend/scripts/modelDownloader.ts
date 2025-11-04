@@ -3,8 +3,8 @@ import { promisify } from 'util';
 
 const execPromise = promisify(exec);
 
-const MODEL = process.env.OLLAMA_MODEL || 'phi3:mini';
-const FALLBACK_MODEL = 'phi3:mini';
+const MODEL = process.env.OLLAMA_MODEL || 'gemma:2b';
+const FALLBACK_MODEL = 'gemma:2b';
 
 async function checkOllamaInstalled(): Promise<boolean> {
   try {
@@ -58,7 +58,7 @@ async function main() {
   const hasModel = await checkModel(MODEL);
   if (hasModel) {
     console.log(`[Model] ${MODEL} is already available`);
-    console.log('[Model] Model size: ~2GB (phi3:mini) or ~1.5GB (llama3.2:3b-q4_0)');
+    console.log('[Model] Model size: ~1.6GB (gemma:2b) - optimized for speed');
     process.exit(0);
   }
   

@@ -39,6 +39,11 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
+    /* Meal type colors */
+    --meal-breakfast: 48 96% 53%;
+    --meal-lunch: 142 76% 36%;
+    --meal-dinner: 262 52% 47%;
+
     /* Nature-inspired color scheme */
     --gradient-primary: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 56%));
     --gradient-hero: linear-gradient(180deg, hsl(84 15% 85%), hsl(42 25% 92%));
@@ -180,4 +185,19 @@ All colors MUST be HSL.
   50% {
     transform: translateY(-5px);
   }
+}
+
+@keyframes slideInScale {
+  from {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.animate-slide-in-scale {
+  animation: slideInScale 0.4s ease-out forwards;
 }

@@ -13,13 +13,13 @@ const __dirname = dirname(__filename);
 const execAsync = promisify(exec);
 const ollama = new Ollama();
 
-// Use phi3:mini as the default model for conversational responses
-const MODEL = process.env.OLLAMA_MODEL || 'phi3:mini';
-const FALLBACK_MODEL = 'phi3:mini';
+// Use gemma:2b as the default model for conversational responses (optimized for speed)
+const MODEL = process.env.OLLAMA_MODEL || 'gemma:2b';
+const FALLBACK_MODEL = 'gemma:2b';
 const HOST = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
 const ROOT_DIR = path.join(__dirname, '../..');
 
-// Auto-pull phi3:mini model if not available
+// Auto-pull gemma:2b model if not available
 async function ensureModel(): Promise<void> {
   try {
     const models = await ollama.list();

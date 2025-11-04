@@ -17,9 +17,10 @@ interface AutoGenerateModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPlanGenerated: (plan: WeeklyMealPlan) => void;
+  onStartGeneration?: (preferences: any) => Promise<void>;
 }
 
-export const AutoGenerateModal = ({ open, onOpenChange, onPlanGenerated }: AutoGenerateModalProps) => {
+export const AutoGenerateModal = ({ open, onOpenChange, onPlanGenerated, onStartGeneration }: AutoGenerateModalProps) => {
   const { profile, updateProfile } = useUserProfile();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -52,68 +53,42 @@ export const AutoGenerateModal = ({ open, onOpenChange, onPlanGenerated }: AutoG
   };
 
   const handleGenerate = async () => {
-    setLoading(true);
-    setIsGenerating(true);
-    setGenerationProgress(0);
-    setGenerationStatus('Initializing...');
-    setCompletedDays([]);
-    setCurrentDay('');
+    // Close modal immediately
+    onOpenChange(false);
+    setStep(1);
     
-    try {
-      // Use real Ollama/Gemma streaming generation
-      await mealPlanApi.generatePlanStream(
-        editedProfile,
+    // Trigger progressive rendering in parent component
+    if (onStartGeneration) {
+      await onStartGeneration({
+        profile: editedProfile,
         budget,
         preferences,
         varietyMode,
-        // onProgress callback
-        (data) => {
-          if (data.type === 'status') {
-            setGenerationStatus(data.message);
-            setGenerationProgress(data.progress);
-            
-            // Extract current day from status message
-            const dayMatch = data.message.match(/Generating (\w+)/);
-            if (dayMatch) {
-              setCurrentDay(dayMatch[1]);
-            }
-          } else if (data.type === 'day_complete') {
-            setCompletedDays(prev => [...prev, data.day]);
-            setGenerationProgress(data.progress);
-            setGenerationStatus(`${data.day.day} completed!`);
-            
-            // Log real timing for each day
-            console.log(`[Real Generation] ${data.day.day} completed with ${data.day.meals.length} meals from Gemma`);
-          }
-        },
-        // onComplete callback
-        (mealPlan) => {
-          setGenerationStatus('Plan completed!');
-          setGenerationProgress(100);
-          onPlanGenerated(mealPlan);
-          toast.success("Real meal plan generated successfully!");
-          
-          // Reset and close after a brief delay
-          setTimeout(() => {
-            setIsGenerating(false);
+      });
+    } else {
+      // Fallback to old method if callback not provided
+      setLoading(true);
+      try {
+        await mealPlanApi.generatePlanStream(
+          editedProfile,
+          budget,
+          preferences,
+          varietyMode,
+          (data) => {},
+          (mealPlan) => {
+            onPlanGenerated(mealPlan);
+            toast.success("Meal plan generated successfully!");
             setLoading(false);
-            setStep(1);
-            onOpenChange(false);
-          }, 2000);
-        },
-        // onError callback
-        (error) => {
-          console.error('Real generation error:', error);
-          toast.error(error || 'Failed to generate meal plan');
-          setIsGenerating(false);
-          setLoading(false);
-        }
-      );
-    } catch (error: any) {
-      console.error('Generate plan error:', error);
-      toast.error(error.message || 'Failed to generate meal plan');
-      setIsGenerating(false);
-      setLoading(false);
+          },
+          (error) => {
+            toast.error(error || 'Failed to generate meal plan');
+            setLoading(false);
+          }
+        );
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to generate meal plan');
+        setLoading(false);
+      }
     }
   };
 
@@ -331,84 +306,7 @@ export const AutoGenerateModal = ({ open, onOpenChange, onPlanGenerated }: AutoG
             </div>
           )}
 
-          {/* Generation Progress */}
-          {isGenerating && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="text-center">
-                <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full mb-4">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="font-medium">Generating Your Meal Plan</span>
-                </div>
-                <p className="text-sm text-muted-foreground mb-6">
-                  Creating personalized meals for each day of the week...
-                </p>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Progress</span>
-                  <span className="font-medium">{generationProgress}%</span>
-                </div>
-                <Progress value={generationProgress} className="h-2" />
-                <p className="text-sm text-center text-muted-foreground">
-                  {generationStatus}
-                </p>
-              </div>
-
-              {/* Days Progress Grid */}
-              <div className="grid grid-cols-7 gap-2">
-                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, index) => {
-                  const isCompleted = completedDays.some(d => d.day === day);
-                  const isCurrent = currentDay === day;
-                  
-                  return (
-                    <div
-                      key={day}
-                      className={`p-3 rounded-lg border text-center transition-all duration-300 ${
-                        isCompleted
-                          ? 'bg-green-50 border-green-200 text-green-700'
-                          : isCurrent
-                          ? 'bg-primary/10 border-primary text-primary animate-pulse'
-                          : 'bg-muted/30 border-muted text-muted-foreground'
-                      }`}
-                    >
-                      <div className="flex flex-col items-center gap-1">
-                        {isCompleted ? (
-                          <CheckCircle className="h-4 w-4" />
-                        ) : isCurrent ? (
-                          <Clock className="h-4 w-4" />
-                        ) : (
-                          <div className="h-4 w-4 rounded-full border-2 border-current opacity-30" />
-                        )}
-                        <span className="text-xs font-medium">{day.slice(0, 3)}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Completed Days Preview */}
-              {completedDays.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-sm">Completed Days:</h4>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {completedDays.map((day) => (
-                      <div key={day.day} className="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium text-green-700">{day.day}</span>
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        </div>
-                        <div className="text-xs text-green-600 mt-1">
-                          {day.totalCalories} kcal • {day.totalProtein}g protein • {day.meals.length} meals
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Generation happens inline in parent component - no progress UI here */}
         </div>
 
         {/* Navigation Buttons */}

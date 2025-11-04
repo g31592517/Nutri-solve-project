@@ -11,7 +11,7 @@ import {
   ocrImage,
   generateInsights,
   generateShoppingList,
-} from '../controllers/mealPlanService.js';
+} from '../controllers/mealPlanService';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
